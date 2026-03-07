@@ -1,4 +1,4 @@
-import { initPinPlacement } from "./pin.js";
+import { initPinPlacement } from "./map/pins.js";
 import { INITIAL_Y_OFFSET } from "./constants.js";
 import { setupPanZoom, updatePinScale } from "./map/panZoom.js";
 

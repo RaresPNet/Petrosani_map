@@ -46,10 +46,13 @@ export function initPinPlacement(svg) {
 
     const point = getSVGPoint(e);
 
+    const iconTypes = Object.keys(ICONS);
+    const randomType = iconTypes[Math.floor(Math.random() * iconTypes.length)];
+
     const pin = new Pin({
       id: crypto.randomUUID(),
       name: "test pin",
-      type: "camera",
+      type: randomType,
       x: point.x,
       y: point.y
     });

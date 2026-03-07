@@ -1,47 +1,47 @@
 // ----- icon registry -----
 export const ICONS = Object.freeze({
   camera: {
-    icon: './photos/icons/camera.ico',
-    textColor: '#f708ff'
+    icon: './assets/icons/camera.ico',
+    textColor: '#b56aff'
   },
   church: {
-    icon: './photos/icons/church.ico',
-    textColor: '#7a2e2e'
+    icon: './assets/icons/church.ico',
+    textColor: '#78909c'
   },
   hospital: {
-    icon: './photos/icons/hospital.ico',
-    textColor: '#b00020'
+    icon: './assets/icons/hospital.ico',
+    textColor: '#f74a55'
   },
   museum: {
-    icon: './photos/icons/museum.ico',
-    textColor: '#5a3e85'
+    icon: './assets/icons/museum.ico',
+    textColor: '#b56aff'
   },
   pharmacy: {
-    icon: './photos/icons/pharmacy.ico',
-    textColor: '#1f8a4c'
+    icon: './assets/icons/pharmacy.ico',
+    textColor: '#f74a55'
   },
   restaurant: {
-    icon: './photos/icons/restaurant.ico',
-    textColor: '#b35c00'
+    icon: './assets/icons/restaurant.ico',
+    textColor: '#ff8126'
   },
   school: {
-    icon: './photos/icons/school.ico',
-    textColor: '#2c5aa0'
+    icon: './assets/icons/school.ico',
+    textColor: '#78909c'
   },
   shop: {
-    icon: './photos/icons/shop.ico',
-    textColor: '#6b4f2a'
+    icon: './assets/icons/shop.ico',
+    textColor: '#0597ff'
   },
   stadium: {
-    icon: './photos/icons/stadium.ico',
-    textColor: '#0b6e4f'
+    icon: './assets/icons/stadium.ico',
+    textColor: '#17a773'
   },
   train: {
-    icon: './photos/icons/train.ico',
-    textColor: '#444'
+    icon: './assets/icons/train.ico',
+    textColor: '#4a6276'
   },
   tree: {
-    icon: './photos/icons/tree.ico',
-    textColor: '#2f7d32'
+    icon: './assets/icons/tree.ico',
+    textColor: '#17a773'
   }
 });
