@@ -21,6 +21,19 @@ export class Pin {
 
 }
 
+function showNotification(text) {
+
+  const el = document.getElementById("pin-notification");
+
+  el.textContent = text;
+  el.classList.add("show");
+
+  setTimeout(() => {
+    el.classList.remove("show");
+  }, 1500);
+
+}
+
 // ----- pin placement system -----
 let svgElement = null;
 let viewport = null;
@@ -37,6 +50,11 @@ export function initPinPlacement(svg) {
     if (e.key === "p") {
       pinMode = !pinMode;
       console.log("Pin placement:", pinMode ? "ON" : "OFF");
+      showNotification(
+        pinMode
+          ? "Pin placement mode ON"
+          : "Pin placement mode OFF"
+      );
     }
   });
 
