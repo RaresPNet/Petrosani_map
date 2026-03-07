@@ -1,8 +1,12 @@
 // ----- tweakable limits -----
+// adjust these values to fine-tune how close to the edge you can pan;
+// negative values allow panning beyond the map's edge for padding
 const LIMIT_LEFT = 0;
 const LIMIT_RIGHT = 0;
 const LIMIT_TOP = 0;
-const LIMIT_BOTTOM = -50;
+const LIMIT_BOTTOM = -80;
+// initial vertical offset for centering the map (negative = shift up)
+const INITIAL_Y_OFFSET = -80;
 // ----------------------------
 
 // clamp panning so the map can't be dragged past its edges
@@ -56,9 +60,11 @@ fetch("map.svg")
     panZoom.center();
 
     // manual vertical adjustment
-    panZoom.pan({ x: 0, y: -80 });
+    panZoom.pan({ x: 0, y: INITIAL_Y_OFFSET });
 
     // lock minimum zoom to initial fit
     const startZoom = panZoom.getZoom();
     panZoom.setMinZoom(startZoom);
+  }).then(() => {
+    document.body.style.overflow = 'hidden';
   });
