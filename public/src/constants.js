@@ -9,3 +9,12 @@ export const LIMIT_BOTTOM = -80;
 export const INITIAL_Y_OFFSET = -80;
 // maximum zoom level (relative to initial fit)
 export const MAX_ZOOM = 3;
+
+export const LABEL_ZOOM_THRESHOLD = 1.5;
+export const LABEL_STYLE = {
+  lineHeight: 12,
+  xOffset: -15,
+  baseY: -8,
+  maxWordsSingleLine: 3,
+  maxWordsTwoLines: 4,
+};

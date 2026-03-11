@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "wrangler pages dev ./public",
+    "deploy": "wrangler d1 execute petrosani --remote --file=./db/schema.sql && wrangler pages deploy ./public",
+    "seed:local": "wrangler d1 execute petrosani --local --file=./db/seed.sql",
+    "seed:remote": "wrangler d1 execute petrosani --remote --file=./db/seed.sql"
   },
   "keywords": [],
   "author": "",

@@ -64,3 +64,26 @@ body.pin-mode { cursor: crosshair; }
   white-space: nowrap;
   z-index: 1000;
 }
+
+.pin-label {
+  font-size: 10px;
+  text-anchor: end;
+  fill: var(--label-color);
+  paint-order: stroke;
+  stroke: white;
+  stroke-width: 3;
+  stroke-linejoin: round;
+
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.show-labels .pin-label {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pin-label:hover {
+  fill: #2e8cff;
+}

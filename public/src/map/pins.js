@@ -1,11 +1,14 @@
 import { ICONS } from "./icons.js";
+import { LABEL_STYLE } from "../constants.js";
+import { fetchPins } from "./api/client.js";
 
 // ----- pin model -----
-export class Pin {
 
-  constructor({ id, name, type, x, y }) {
+export class Pin {
+  constructor({ id, name, description, type, x, y }) {
     this.id = id;
     this.name = name;
+    this.description = description;
     this.type = type;
     this.x = x;
     this.y = y;
@@ -18,72 +21,142 @@ export class Pin {
   get textColor() {
     return ICONS[this.type]?.textColor || '#000';
   }
-
 }
 
-function showNotification(text) {
+// ----- shared SVG refs -----
 
-  const el = document.getElementById("pin-notification");
-
-  el.textContent = text;
-  el.classList.add("show");
-
-  setTimeout(() => {
-    el.classList.remove("show");
-  }, 1500);
-
-}
-
-// ----- pin placement system -----
 let svgElement = null;
 let viewport = null;
-let pinMode = false;
 let pinLayer = null;
-// initialize after SVG map loads
-export function initPinPlacement(svg) {
 
+export function initSVG(svg) {
   svgElement = svg;
   viewport = svg.querySelector('.svg-pan-zoom_viewport');
   pinLayer = svg.querySelector('#pin-layer');
+}
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "p") {
-      pinMode = !pinMode;
-      console.log("Pin placement:", pinMode ? "ON" : "OFF");
-      showNotification(
-        pinMode
-          ? "Pin placement mode ON"
-          : "Pin placement mode OFF"
-      );
-    }
+// ----- coordinate helper -----
+
+function getSVGPoint(event) {
+  const pt = svgElement.createSVGPoint();
+  pt.x = event.clientX;
+  pt.y = event.clientY;
+  return pt.matrixTransform(viewport.getScreenCTM().inverse());
+}
+
+// ----- render -----
+
+function renderPin(pin) {
+  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
+
+  const content = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  content.classList.add("pin-content");
+
+  const icon = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  icon.setAttribute("href", pin.icon);
+  icon.setAttribute("width", 24);
+  icon.setAttribute("height", 24);
+  icon.setAttribute("x", -12);
+  icon.setAttribute("y", -24);
+
+  const label = makeLabel(pin);
+
+  content.appendChild(icon);
+  content.appendChild(label);
+  group.appendChild(content);
+  pinLayer.appendChild(group);
+}
+
+function makeLabel(pin) {
+  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+
+  label.classList.add("pin-label");
+  label.style.setProperty("--label-color", pin.textColor);
+
+  label.setAttribute("y", LABEL_STYLE.baseY);
+
+  const words = pin.name.split(" ");
+  let lines = [];
+
+  if (words.length <= LABEL_STYLE.maxWordsSingleLine) {
+    lines = [words.join(" ")];
+  } else if (words.length <= LABEL_STYLE.maxWordsTwoLines) {
+    const mid = Math.ceil(words.length / 2);
+    lines = [
+      words.slice(0, mid).join(" "),
+      words.slice(mid).join(" "),
+    ];
+  } else {
+    const third = Math.ceil(words.length / 3);
+    lines = [
+      words.slice(0, third).join(" "),
+      words.slice(third, third * 2).join(" "),
+      words.slice(third * 2).join(" "),
+    ];
+  }
+
+  const offset = -((lines.length - 1) * LABEL_STYLE.lineHeight) / 2;
+
+  lines.forEach((text, i) => {
+    const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    tspan.textContent = text;
+    tspan.setAttribute("x", LABEL_STYLE.xOffset);
+    tspan.setAttribute("dy", i === 0 ? offset : LABEL_STYLE.lineHeight);
+    label.appendChild(tspan);
   });
 
-  svg.addEventListener("click", (e) => {
+  return label;
+}
 
+// ----- load & render pins from DB -----
+
+export async function loadPins() {
+  const pins = await fetchPins();
+  pins.map(data => new Pin(data)).forEach(renderPin);
+}
+
+// ----- pin placement mode (dev/testing) -----
+
+function showNotification(text) {
+  const el = document.getElementById("pin-notification");
+  el.textContent = text;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 1500);
+}
+
+export function initPinMode() {
+  let pinMode = false;
+
+  const coordLabel = document.createElement("div");
+  coordLabel.id = "coord-label";
+  document.body.appendChild(coordLabel);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "p") return;
+    pinMode = !pinMode;
+    showNotification(pinMode ? "Pin placement mode ON" : "Pin placement mode OFF");
+  });
+
+  svgElement.addEventListener("click", (e) => {
     if (!pinMode) return;
-
     const point = getSVGPoint(e);
-
     const iconTypes = Object.keys(ICONS);
     const randomType = iconTypes[Math.floor(Math.random() * iconTypes.length)];
 
     const pin = new Pin({
       id: crypto.randomUUID(),
       name: "test pin",
+      description: "test",
       type: randomType,
       x: point.x,
-      y: point.y
+      y: point.y,
     });
 
     renderPin(pin);
-
   });
 
-  const coordLabel = document.createElement("div");
-  coordLabel.id = "coord-label";
-  document.body.appendChild(coordLabel);
-
-  svg.addEventListener("mousemove", (e) => {
+  svgElement.addEventListener("mousemove", (e) => {
     if (!pinMode) {
       coordLabel.style.display = "none";
       return;
@@ -94,69 +167,4 @@ export function initPinPlacement(svg) {
     coordLabel.style.top = `${e.clientY}px`;
     coordLabel.textContent = `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`;
   });
-}
-
-// convert mouse → SVG coordinates
-function getSVGPoint(event) {
-
-  const pt = svgElement.createSVGPoint();
-
-  pt.x = event.clientX;
-  pt.y = event.clientY;
-
-  // use viewport transform, not svg
-  return pt.matrixTransform(
-    viewport.getScreenCTM().inverse()
-  );
-}
-
-// draw pin on map
-function renderPin(pin) {
-
-  const group = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "g"
-  );
-
-  // position on map
-  group.setAttribute(
-    "transform",
-    `translate(${pin.x}, ${pin.y})`
-  );
-
-  const content = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "g"
-  );
-
-  content.classList.add("pin-content");
-
-  const icon = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "image"
-  );
-
-  icon.setAttribute("href", pin.icon);
-  icon.setAttribute("width", 24);
-  icon.setAttribute("height", 24);
-  icon.setAttribute("x", -12);
-  icon.setAttribute("y", -24);
-
-  const label = document.createElementNS(
-    "http://www.w3.org/2000/svg",
-    "text"
-  );
-
-  label.textContent = pin.name;
-  label.setAttribute("y", 6);
-  label.setAttribute("text-anchor", "middle");
-  label.setAttribute("font-size", "10");
-  label.setAttribute("fill", pin.textColor);
-
-  content.appendChild(icon);
-  content.appendChild(label);
-
-  group.appendChild(content);
-
-  pinLayer.appendChild(group);
 }

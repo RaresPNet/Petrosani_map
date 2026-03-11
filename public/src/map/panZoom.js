@@ -1,7 +1,6 @@
-import { MAX_ZOOM } from "../constants.js";
+import { MAX_ZOOM, LABEL_ZOOM_THRESHOLD } from "../constants.js";
 
 let limits = null;
-let isZooming = false;
 let zoomTimeout = null;
 let isPinMode = false;
 
@@ -96,9 +95,13 @@ export function setupPanZoom(svg) {
     beforePan: (oldPan, newPan) => clampPan(panZoom, oldPan, newPan),
 
     onZoom: () => {
+      const zoom = panZoom.getZoom();
+      
       computeLimits(panZoom);
       updatePinScale(panZoom);
       onZoomCursor(panZoom);
+
+      svg.classList.toggle("show-labels", zoom >= LABEL_ZOOM_THRESHOLD);
     },
   });
 
