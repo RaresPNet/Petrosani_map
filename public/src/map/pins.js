@@ -78,6 +78,22 @@ export function initPinPlacement(svg) {
     renderPin(pin);
 
   });
+
+  const coordLabel = document.createElement("div");
+  coordLabel.id = "coord-label";
+  document.body.appendChild(coordLabel);
+
+  svg.addEventListener("mousemove", (e) => {
+    if (!pinMode) {
+      coordLabel.style.display = "none";
+      return;
+    }
+    const point = getSVGPoint(e);
+    coordLabel.style.display = "block";
+    coordLabel.style.left = `${e.clientX + 16}px`;
+    coordLabel.style.top = `${e.clientY}px`;
+    coordLabel.textContent = `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`;
+  });
 }
 
 // convert mouse → SVG coordinates

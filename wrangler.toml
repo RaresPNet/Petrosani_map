@@ -1,0 +1,9 @@
+name = "petrosani-map"
+compatibility_date = "2024-01-01"
+
+pages_build_output_dir = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "petrosani"
+database_id = "d3584bed-821d-4c8a-a615-bb9e51ed49af"

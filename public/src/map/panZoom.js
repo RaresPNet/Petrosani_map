@@ -24,7 +24,7 @@ function onZoomCursor(panZoom) {
   zoomTimeout = setTimeout(() => {
     previousZoom = null;
     setCursor(isPinMode ? "pin-mode" : null);
-  }, 300);
+  }, 150);
 }
 
 // --- Pin mode toggle ---

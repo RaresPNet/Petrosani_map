@@ -43,5 +43,13 @@ export const ICONS = Object.freeze({
   tree: {
     icon: './assets/icons/tree.ico',
     textColor: '#17a773'
-  }
+  },
+  civic: {
+    icon: './assets/icons/civic.ico',
+    textColor: '#78909c'
+  },
+  normal: {
+    icon: './assets/icons/dot.ico',
+    textColor: '#78909c'
+  },
 });
