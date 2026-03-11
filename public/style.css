@@ -3,8 +3,13 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: #caebd9;
-  cursor: grab;
+  cursor: default;
 }
+
+body.panning  { cursor: grabbing; }
+body.zoom-in  { cursor: zoom-in; }
+body.zoom-out { cursor: zoom-out; }
+body.pin-mode { cursor: crosshair; }
 
 #container {
   width: 100vw;
