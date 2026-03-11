@@ -8,10 +8,10 @@ function computeLimits(panZoom) {
   const mapHeight = sizes.viewBox.height * sizes.realZoom;
 
   limits = {
-    left: mapWidth > sizes.width ? 0 : null,
-    right: mapWidth > sizes.width ? sizes.width - mapWidth : null,
-    top: mapHeight > sizes.height ? 0 : null,
-    bottom: mapHeight > sizes.height ? sizes.height - mapHeight : null,
+    left: mapWidth > sizes.width ? 0 : sizes.width - mapWidth,
+    right: mapWidth > sizes.width ? sizes.width - mapWidth : 0,
+    top: mapHeight > sizes.height ? 0 : sizes.height - mapHeight,
+    bottom: mapHeight > sizes.height ? sizes.height - mapHeight : 0,
   };
 }
 
@@ -19,12 +19,8 @@ function clampPan(panZoom, oldPan, newPan) {
   if (!limits) return newPan;
 
   return {
-    x: limits.left === null
-      ? newPan.x
-      : Math.max(limits.right, Math.min(limits.left, newPan.x)),
-    y: limits.top === null
-      ? newPan.y
-      : Math.max(limits.bottom, Math.min(limits.top, newPan.y)),
+    x: Math.max(limits.right, Math.min(limits.left, newPan.x)),
+    y: Math.max(limits.bottom, Math.min(limits.top, newPan.y)),
   };
 }
 
