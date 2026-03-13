@@ -1,5 +1,7 @@
-import { initSVG, loadPins, initPinMode } from "./map/pins.js";
+import { initSVG, loadPins } from "./map/pins.js";
+import { initSVGCoords } from "./map/svgCoords.js";
 import { setupPanZoom } from "./map/panZoom.js";
+import { initPinPlacement } from "./map/pinPlacement.js";
 
 fetch("map.svg")
   .then(r => r.text())
@@ -12,10 +14,12 @@ fetch("map.svg")
     svg.removeAttribute("width");
     svg.removeAttribute("height");
 
-    setupPanZoom(svg);
+    const panZoom = setupPanZoom(svg);
+
     initSVG(svg);
+    initSVGCoords(svg);
 
     await loadPins();
 
-    initPinMode(); // manual pin placement for testing
+    initPinPlacement(svg, panZoom);
   });

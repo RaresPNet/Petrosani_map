@@ -26,27 +26,16 @@ export class Pin {
 // ----- shared SVG refs -----
 
 let svgElement = null;
-let viewport = null;
 let pinLayer = null;
 
 export function initSVG(svg) {
   svgElement = svg;
-  viewport = svg.querySelector('.svg-pan-zoom_viewport');
-  pinLayer = svg.querySelector('#pin-layer');
-}
-
-// ----- coordinate helper -----
-
-function getSVGPoint(event) {
-  const pt = svgElement.createSVGPoint();
-  pt.x = event.clientX;
-  pt.y = event.clientY;
-  return pt.matrixTransform(viewport.getScreenCTM().inverse());
+  pinLayer = svg.querySelector("#pin-layer");
 }
 
 // ----- render -----
 
-function renderPin(pin) {
+export function renderPin(pin) {
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
 

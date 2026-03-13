@@ -1,8 +1,8 @@
 import { MAX_ZOOM, LABEL_ZOOM_THRESHOLD } from "../constants.js";
+import { isPlacementMode, onPlacementModeChange } from "../appState.js";
 
 let limits = null;
 let zoomTimeout = null;
-let isPinMode = false;
 
 // --- Cursor ---
 
@@ -15,30 +15,25 @@ let previousZoom = null;
 
 function onZoomCursor(panZoom) {
   const zoom = panZoom.getZoom();
-  const direction = previousZoom === null || zoom > previousZoom ? "zoom-in" : "zoom-out";
+  const direction =
+    previousZoom === null || zoom > previousZoom ? "zoom-in" : "zoom-out";
+
   previousZoom = zoom;
 
   setCursor(direction);
+
   clearTimeout(zoomTimeout);
   zoomTimeout = setTimeout(() => {
     previousZoom = null;
-    setCursor(isPinMode ? "pin-mode" : null);
+    setCursor(isPlacementMode() ? "pin-mode" : null);
   }, 150);
 }
-
-// --- Pin mode toggle ---
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === "p" || e.key === "P") {
-    isPinMode = !isPinMode;
-    setCursor(isPinMode ? "pin-mode" : null);
-  }
-});
 
 // --- Pan limits ---
 
 function computeLimits(panZoom) {
   const sizes = panZoom.getSizes();
+
   const mapWidth = sizes.viewBox.width * sizes.realZoom;
   const mapHeight = sizes.viewBox.height * sizes.realZoom;
 
@@ -59,7 +54,7 @@ function clampPan(panZoom, oldPan, newPan) {
   };
 }
 
-// --- Pin scale ---
+// --- Pin scaling ---
 
 export function updatePinScale(panZoom) {
   const zoom = panZoom.getZoom();
@@ -73,12 +68,17 @@ export function updatePinScale(panZoom) {
 // --- Setup ---
 
 export function setupPanZoom(svg) {
-  // Pan cursor events
   svg.addEventListener("mousedown", () => {
-    if (!isPinMode) setCursor("panning");
+    if (!isPlacementMode()) setCursor("panning");
   });
+
   window.addEventListener("mouseup", () => {
-    if (!isPinMode) setCursor(null);
+    if (!isPlacementMode()) setCursor(null);
+  });
+
+  onPlacementModeChange((active) => {
+    console.log("Placement mode:", active);
+    setCursor(active ? "pin-mode" : null);
   });
 
   let panZoom;
@@ -92,16 +92,22 @@ export function setupPanZoom(svg) {
     fit: true,
     center: true,
 
-    beforePan: (oldPan, newPan) => clampPan(panZoom, oldPan, newPan),
+    beforePan: (oldPan, newPan) => {
+      if (isPlacementMode()) return oldPan;
+      return clampPan(panZoom, oldPan, newPan);
+    },
 
     onZoom: () => {
       const zoom = panZoom.getZoom();
-      
+
       computeLimits(panZoom);
       updatePinScale(panZoom);
       onZoomCursor(panZoom);
 
       svg.classList.toggle("show-labels", zoom >= LABEL_ZOOM_THRESHOLD);
+
+      // lift zoom ceiling during placement
+      panZoom.setMaxZoom(isPlacementMode() ? 100 : MAX_ZOOM);
     },
   });
 
