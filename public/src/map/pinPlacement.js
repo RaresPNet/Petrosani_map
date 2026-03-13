@@ -1,6 +1,6 @@
 import { Pin, renderPin } from "./pins.js";
-import { getSVGPoint } from "./svgCoords.js";
-import { setPlacementMode, isPlacementMode } from "../appState.js";
+import { getSVGPoint, svgPointToScreen } from "./svgCoords.js";
+import { setMode, getMode, canPlacePin } from "../appState.js";
 import { PLACEMENT_ZOOM_LEVEL } from "../constants.js";
 
 function showNotification(text) {
@@ -18,17 +18,25 @@ export function initPinPlacement(svg, panZoom) {
   coordLabel.id = "coord-label";
   document.body.appendChild(coordLabel);
 
+  // --- toggle placement mode ---
+
   document.addEventListener("keydown", (e) => {
     if (e.key !== "p") return;
 
-    const next = !isPlacementMode();
-    setPlacementMode(next);
+    const next = getMode() === "placing" ? "browse" : "placing";
+    setMode(next);
 
-    showNotification(next ? "Pin placement mode ON" : "Pin placement mode OFF");
+    showNotification(
+      next === "placing"
+        ? "Pin placement mode ON"
+        : "Pin placement mode OFF"
+    );
   });
 
+  // --- place pin ---
+
   svg.addEventListener("click", (e) => {
-    if (!isPlacementMode()) return;
+    if (!canPlacePin()) return;
 
     const point = getSVGPoint(e);
 
@@ -41,35 +49,48 @@ export function initPinPlacement(svg, panZoom) {
       y: point.y,
     });
 
-    renderPin(pin);
-
     const startZoom = panZoom.getZoom();
     const targetZoom = PLACEMENT_ZOOM_LEVEL;
 
-    const duration = 400;
+    const duration = 500;
     const startTime = performance.now();
 
-    const screenPoint = {
-      x: e.clientX,
-      y: e.clientY,
-    };
+    let pinRendered = false;
 
     function animate(time) {
       const t = Math.min((time - startTime) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
+
+      const eased =
+        t < 0.5
+          ? 4 * t * t * t
+          : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
       const zoom = startZoom + (targetZoom - startZoom) * eased;
 
+      const screenPoint = svgPointToScreen(point.x, point.y);
       panZoom.zoomAtPoint(zoom, screenPoint);
 
-      if (t < 1) requestAnimationFrame(animate);
+      // render pin late in the animation
+      if (!pinRendered && t > 0.6) {
+        renderPin(pin);
+        pinRendered = true;
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        if (!pinRendered) renderPin(pin);
+        setMode("editing");
+      }
     }
 
     requestAnimationFrame(animate);
   });
 
+  // --- coordinate helper while placing ---
+
   svg.addEventListener("mousemove", (e) => {
-    if (!isPlacementMode()) {
+    if (!canPlacePin()) {
       coordLabel.style.display = "none";
       return;
     }

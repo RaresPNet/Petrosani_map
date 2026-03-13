@@ -1,15 +1,34 @@
-let placementMode = false;
+let mode = "browse";
 const listeners = new Set();
 
-export function setPlacementMode(value) {
-  placementMode = value;
-  listeners.forEach(fn => fn(placementMode));
+export function setMode(nextMode) {
+  mode = nextMode;
+  listeners.forEach(fn => fn(mode));
 }
 
-export function isPlacementMode() {
-  return placementMode;
+export function getMode() {
+  return mode;
 }
 
-export function onPlacementModeChange(fn) {
+export function onModeChange(fn) {
   listeners.add(fn);
+}
+
+
+// --- permissions derived from mode ---
+
+export function canPan() {
+  return mode !== "editing";
+}
+
+export function canZoom() {
+  return mode !== "editing";
+}
+
+export function canPlacePin() {
+  return mode === "placing";
+}
+
+export function isEditing() {
+  return mode === "editing";
 }

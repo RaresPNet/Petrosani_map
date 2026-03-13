@@ -19,4 +19,4 @@ export const LABEL_STYLE = {
   maxWordsTwoLines: 4,
 };
 
-export const PLACEMENT_ZOOM_LEVEL = 100;
+export const PLACEMENT_ZOOM_LEVEL = 10;

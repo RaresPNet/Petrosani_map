@@ -13,3 +13,11 @@ export function getSVGPoint(event) {
 
   return pt.matrixTransform(viewport.getScreenCTM().inverse());
 }
+
+export function svgPointToScreen(x, y) {
+  const pt = svgElement.createSVGPoint();
+  pt.x = x;
+  pt.y = y;
+
+  return pt.matrixTransform(viewport.getScreenCTM());
+}
