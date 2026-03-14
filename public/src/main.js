@@ -1,10 +1,11 @@
-import { initSVG, loadPins, setOnPinClick } from "./map/pins.js";
+import { initSVG, loadPins, setOnPinClick, swapToSelectedType, restoreSelectedPinType } from "./map/pins.js";
 import { initSVGCoords } from "./map/svgCoords.js";
-import { setupPanZoom, flyTo } from "./map/camera.js";
+import { setupPanZoom, flyToSelection, closeSelection } from "./map/camera.js";
 import { initPinPlacement } from "./map/pinPlacement.js";
 import { initPinArrows } from "./map/pinArrows.js";
 import { initNewPinPanel } from "./editing/newPin.js";
-import { setMode, Mode } from "./appState.js";
+import { initViewPinPanel } from "./selection/viewPin.js";
+import { setMode, setSelectedPin, getSelectedPin, Mode } from "./appState.js";
 
 fetch("map.svg")
   .then(r => r.text())
@@ -24,13 +25,26 @@ fetch("map.svg")
     await Promise.all([
       loadPins(),
       initNewPinPanel(),
+      initViewPinPanel(),
     ]);
 
     initPinPlacement(svg, panZoom);
     initPinArrows();
 
-    // Clicking an existing pin flies to it and opens the edit panel
+    // Clicking an existing pin: restore any previous selection, swap icon,
+    // fly to right side, enter selection mode
     setOnPinClick(pin => {
-      flyTo(svg, panZoom, { x: pin.x, y: pin.y }, () => setMode(Mode.EDITING));
+      restoreSelectedPinType();
+      setSelectedPin(pin);
+      swapToSelectedType(pin);
+      flyToSelection(svg, panZoom, { x: pin.x, y: pin.y }, () => {
+        setMode(Mode.SELECTION);
+      });
+    });
+
+    document.addEventListener("selection:close", () => closeSelection());
+    document.addEventListener("selection:edit",  () => {
+      // TODO: transition to editing mode
+      console.log("[selection] edit:", getSelectedPin()?.id);
     });
   });

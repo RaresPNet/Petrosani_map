@@ -1,5 +1,5 @@
 import { onModeChange, getActivePin, activePinNew, Mode } from "../appState.js";
-import { updatePinLabel, deletePin } from "../map/pins.js";
+import { updatePinLabel, deletePin, attachPinInteraction } from "../map/pins.js";
 import { closeEditing } from "../map/camera.js";
 import { createPin, updatePin, deletePin as deletePinFromDB } from "../map/api/client.js";
 
@@ -41,6 +41,9 @@ export async function initNewPinPanel() {
     try {
       if (activePinNew()) {
         await createPin(pin);
+        // Pin is now persisted — attach click interaction so it behaves like a loaded pin
+        const group = document.querySelector(`[data-pin-id="${pin.id}"]`);
+        if (group) attachPinInteraction(group, pin);
       } else {
         await updatePin(pin.id, { name: pin.name, description: pin.description, type: pin.type });
       }

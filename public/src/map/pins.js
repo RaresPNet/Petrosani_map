@@ -1,7 +1,7 @@
 import { ICONS } from "./icons.js";
 import { LABEL_STYLE } from "../constants.js";
 import { fetchPins } from "./api/client.js";
-import { onModeChange, getActivePin, setActivePin, Mode, getMode } from "../appState.js";
+import { onModeChange, getActivePin, getSelectedPin, setActivePin, setSelectedPin, Mode, getMode } from "../appState.js";
 
 // ─── Pin model ────────────────────────────────────────────────────────────────
 
@@ -70,7 +70,41 @@ export function initSVG(svg) {
   });
 }
 
-// ─── Delete / visual update / label update ────────────────────────────────────
+// ─── Selection type swap ──────────────────────────────────────────────────────
+// When a pin is selected, its icon swaps to 'selected'. The original type is
+// stored as a data attribute on the group so it can be restored on deselect.
+
+export function swapToSelectedType(pin) {
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (!group) return;
+  // Guard: if already swapped, don't overwrite the stored original
+  if (!group.hasAttribute("data-original-type")) {
+    group.setAttribute("data-original-type",  pin.type);
+    group.setAttribute("data-original-color", pin.textColor);
+  }
+  pin.type = "selected";
+  updatePinVisual(pin);
+}
+
+export function restoreSelectedPinType() {
+  const pin = getSelectedPin();
+  if (!pin) return;
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (!group) return;
+  const originalType = group.getAttribute("data-original-type");
+  if (originalType) {
+    pin.type = originalType;
+    updatePinVisual(pin);
+    group.removeAttribute("data-original-type");
+    group.removeAttribute("data-original-color");
+  }
+}
+
+// Returns the pre-selection textColor for a given pin id (used by viewPin panel)
+export function getOriginalPinColor(pinId) {
+  const group = pinLayer?.querySelector(`[data-pin-id="${pinId}"]`);
+  return group?.getAttribute("data-original-color") || null;
+}
 
 export function deletePin(id) {
   const group = pinLayer.querySelector(`[data-pin-id="${id}"]`);
@@ -124,12 +158,18 @@ export function renderPin(pin, isNew = false) {
   if (!isNew) attachPinInteraction(group, pin);
 }
 
-function attachPinInteraction(group, pin) {
+export function attachPinInteraction(group, pin) {
   group.classList.add("pin-interactive");
+
+  let dragStartX = 0, dragStartY = 0;
+  group.addEventListener("mousedown", e => { dragStartX = e.clientX; dragStartY = e.clientY; });
   group.addEventListener("click", e => {
-    if (getMode() !== Mode.BROWSE) return;
+    const m = getMode();
+    if (m !== Mode.BROWSE && m !== Mode.SELECTION) return;
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+    if (Math.sqrt(dx * dx + dy * dy) > 4) return;  // was a drag, not a click
     e.stopPropagation();
-    setActivePin(pin, false);  // false = existing pin
     if (onPinClick) onPinClick(pin);
   });
 }

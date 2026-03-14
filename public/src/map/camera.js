@@ -1,8 +1,8 @@
 import {
   MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
-import { canInteract, isFlying, getMode, getActivePin, activePinNew, onModeChange, Mode, setMode } from "../appState.js";
-import { deletePin } from "./pins.js";
+import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, onModeChange, Mode, setMode } from "../appState.js";
+import { deletePin, restoreSelectedPinType } from "./pins.js";
 
 let limits = null;
 let zoomCursorTimer = null;
@@ -95,11 +95,13 @@ function animateCamera(panZoom, targetZoom, targetPan, duration, onComplete) {
 }
 
 // ─── Fly-in ───────────────────────────────────────────────────────────────────
+// targetZoom defaults to PLACEMENT_ZOOM_LEVEL.
+// Pass a custom value (e.g. current zoom) to fly without zooming.
 
-export function flyTo(svg, panZoom, svgPoint, onComplete) {
+export function flyTo(svg, panZoom, svgPoint, onComplete, targetZoom = PLACEMENT_ZOOM_LEVEL) {
   const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
   const initialFitZoom = viewport.getScreenCTM().a / panZoom.getZoom();
-  const targetScale    = PLACEMENT_ZOOM_LEVEL * initialFitZoom;
+  const targetScale    = targetZoom * initialFitZoom;
 
   const targetPan = {
     x: (svg.clientWidth * PIN_FOCUS_X) - svgPoint.x * targetScale,
@@ -112,9 +114,41 @@ export function flyTo(svg, panZoom, svgPoint, onComplete) {
   panZoom.disableMouseWheelZoom();
   panZoom.setMaxZoom(Infinity);
 
-  animateCamera(panZoom, PLACEMENT_ZOOM_LEVEL, targetPan, 600, () => {
+  animateCamera(panZoom, targetZoom, targetPan, 600, () => {
     panZoom.enablePan();
     panZoom.enableZoom();
+    panZoom.setMaxZoom(MAX_ZOOM);
+    updatePinScale(panZoom);
+    onComplete();
+  });
+}
+
+// ─── Fly-to-selection ─────────────────────────────────────────────────────────
+// Same as flyTo but places pin on the RIGHT side (mirrored PIN_FOCUS_X),
+// preserves current zoom level, and re-enables pan/zoom after landing.
+
+export function flyToSelection(svg, panZoom, svgPoint, onComplete) {
+  const currentZoom    = panZoom.getZoom();
+  const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
+  const initialFitZoom = viewport.getScreenCTM().a / currentZoom;
+  const targetScale    = currentZoom * initialFitZoom;
+
+  // Mirror PIN_FOCUS_X to the right side
+  const targetPan = {
+    x: (svg.clientWidth * (1 - PIN_FOCUS_X)) - svgPoint.x * targetScale,
+    y:  svg.clientHeight / 2                 - svgPoint.y * targetScale,
+  };
+
+  setMode(Mode.FLYING);
+  panZoom.disablePan();
+  panZoom.disableZoom();
+  panZoom.disableMouseWheelZoom();
+  panZoom.setMaxZoom(Infinity);
+
+  animateCamera(panZoom, currentZoom, targetPan, 600, () => {
+    panZoom.enablePan();
+    panZoom.enableZoom();
+    panZoom.enableMouseWheelZoom();  // re-enable — selection allows pan/zoom
     panZoom.setMaxZoom(MAX_ZOOM);
     updatePinScale(panZoom);
     onComplete();
@@ -152,6 +186,14 @@ export function flyOut(svgPoint) {
     updatePinScale(panZoom);
     setMode(Mode.BROWSE);
   });
+}
+
+// ─── Close selection ──────────────────────────────────────────────────────────
+
+export function closeSelection() {
+  if (getMode() !== Mode.SELECTION) return;
+  restoreSelectedPinType();
+  setMode(Mode.BROWSE);
 }
 
 // ─── Close editing ────────────────────────────────────────────────────────────

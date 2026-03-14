@@ -1,54 +1,61 @@
-// ─── Mode enum ───────────────────────────────────────────────────────────────
-// browse   — normal map interaction (pan, zoom, no pin placement)
-// placing  — 'p' pressed, crosshair cursor, next click drops a pin
-// flying   — camera animating to the dropped pin, all input locked
-// editing  — pin centred on screen, input locked, detail panel open
+// ─── Mode enum ────────────────────────────────────────────────────────────────
+// browse    — normal map interaction (pan, zoom, no pin placement)
+// placing   — 'p' pressed, crosshair cursor, click to drop pin
+// flying    — camera animating, all input locked
+// selection — pin selected, left panel visible, can still pan/zoom
+// editing   — right panel open, input locked, type arrows visible
 
 export const Mode = Object.freeze({
-  BROWSE:   "browse",
-  PLACING:  "placing",
-  FLYING:   "flying",
-  EDITING:  "editing",
+  BROWSE:    "browse",
+  PLACING:   "placing",
+  FLYING:    "flying",
+  SELECTION: "selection",
+  EDITING:   "editing",
 });
 
 let mode = Mode.BROWSE;
 const listeners = [];
 document.body.classList.add(`mode-${Mode.BROWSE}`);
 
-export function getMode()    { return mode; }
+export function getMode() { return mode; }
 
 export function setMode(next) {
-  if (next === mode) return;
   const prev = mode;
+  // Allow SELECTION→SELECTION so switching pins re-fires listeners
+  if (next === mode && next !== Mode.SELECTION) return;
   mode = next;
-  if (prev === Mode.EDITING) activePin = null;
-  // Keep body class in sync so CSS can scope styles to current mode
+  if (prev === Mode.EDITING)                                          activePin    = null;
+  if (prev === Mode.SELECTION && next !== Mode.FLYING)                selectedPin  = null;
   document.body.classList.remove(...Object.values(Mode).map(m => `mode-${m}`));
   document.body.classList.add(`mode-${next}`);
   listeners.forEach(fn => fn(mode));
 }
 
-export function onModeChange(fn) {
-  listeners.push(fn);
-}
+export function onModeChange(fn) { listeners.push(fn); }
 
-// ─── Active pin ───────────────────────────────────────────────────────────────
-// Stored here so modules that can't share a singleton (different import paths)
-// can all read/write the same pin reference.
+// ─── Active pin (being edited — new or existing) ──────────────────────────────
 
-let activePin   = null;
+let activePin      = null;
 let activePinIsNew = false;
-export const getActivePin      = ()      => activePin;
-export const activePinNew      = ()      => activePinIsNew;
-export const setActivePin      = (pin, isNew = false) => {
+
+export const getActivePin = ()             => activePin;
+export const activePinNew = ()             => activePinIsNew;
+export const setActivePin = (pin, isNew = false) => {
   activePin      = pin;
   activePinIsNew = isNew;
 };
 
-// ─── Predicates ───────────────────────────────────────────────────────────────
-// Import these instead of string-comparing getMode() at call sites.
+// ─── Selected pin (being viewed) ──────────────────────────────────────────────
 
-export const canInteract  = () => mode === Mode.BROWSE || mode === Mode.PLACING;
+let selectedPin = null;
+
+export const getSelectedPin = ()    => selectedPin;
+export const setSelectedPin = (pin) => { selectedPin = pin; };
+
+// ─── Predicates ───────────────────────────────────────────────────────────────
+
+export const canInteract  = () => mode === Mode.BROWSE || mode === Mode.PLACING || mode === Mode.SELECTION;
 export const canPlacePin  = () => mode === Mode.PLACING;
 export const isFlying     = () => mode === Mode.FLYING;
 export const isEditing    = () => mode === Mode.EDITING;
+export const isSelecting  = () => mode === Mode.SELECTION;
