@@ -13,3 +13,7 @@ export const LABEL_STYLE = {
   maxWordsSingleLine: 3,
   maxWordsTwoLines:   4,
 };
+
+// Horizontal screen position the pin lands on after fly-in (fraction of width).
+// Slightly left of centre to keep the pin label visible beside it.
+export const PIN_FOCUS_X = 3/8;

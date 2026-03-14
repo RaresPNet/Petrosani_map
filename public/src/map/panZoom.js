@@ -1,5 +1,5 @@
 import {
-  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD,
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X
 } from "../constants.js";
 import { canInteract, isFlying, getMode, onModeChange, Mode, setMode } from "../appState.js";
 
@@ -33,8 +33,6 @@ function computeLimits(panZoom) {
   const mapW = viewBox.width  * realZoom;
   const mapH = viewBox.height * realZoom;
 
-  // left/top are the maximum (least negative) allowed pan values.
-  // right/bottom are the minimum (most negative) allowed pan values.
   limits = {
     left:   mapW > width  ? 0            : width  - mapW,
     right:  mapW > width  ? width  - mapW : 0,
@@ -64,15 +62,17 @@ export function updatePinScale(panZoom) {
 // Owned here because it is purely a camera operation.
 // pinPlacement.js calls this after rendering the pin.
 //
-// svgPanZoom's pan coordinate space satisfies:
-//   screenPos = svgPoint * zoom + pan
-// So to centre svgPoint at targetZoom:
-//   targetPan = screenCenter - svgPoint * targetZoom
+// panZoom.getZoom() is relative to the initial fit zoom, not absolute pixels.
+// The actual pixel scale is: getZoom() * initialFitZoom.
+// We read initialFitZoom from the viewport CTM so the pan formula uses
+// the real scale, matching the coordinate space of getSVGPoint().
 //
-// We disable user pan/zoom during the animation so the hooks can't interfere,
-// then restore them (minus mousewheel, which stays off in editing mode).
-// disablePan/disableZoom only block user input; programmatic zoom() and pan()
-// still pass through beforePan — isFlying() lets those through unconditionally.
+// To place svgPoint at screen position (tx, ty) at targetZoom:
+//   targetPan = (tx, ty) - svgPoint * targetScale
+// where targetScale = PLACEMENT_ZOOM_LEVEL * initialFitZoom (pixels/SVGunit)
+//
+// The pin is placed at (width/4, height/2) — left-centre — to leave room
+// for the editing panel that will appear on the right.
 
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
@@ -81,10 +81,17 @@ function easeInOutCubic(t) {
 export function flyTo(svg, panZoom, svgPoint, onComplete) {
   const startZoom = panZoom.getZoom();
   const startPan  = panZoom.getPan();
+
+  const viewport        = svg.querySelector(".svg-pan-zoom_viewport");
+  const initialFitZoom  = viewport.getScreenCTM().a / panZoom.getZoom();
+  const targetScale     = PLACEMENT_ZOOM_LEVEL * initialFitZoom;
+
+  // Place pin at left-centre: x = width/4, y = height/2
   const targetPan = {
-    x: svg.clientWidth  / 2 - svgPoint.x * PLACEMENT_ZOOM_LEVEL,
-    y: svg.clientHeight / 2 - svgPoint.y * PLACEMENT_ZOOM_LEVEL,
+    x: svg.clientWidth * PIN_FOCUS_X - svgPoint.x * targetScale,
+    y: svg.clientHeight / 2 - svgPoint.y * targetScale,
   };
+
   const duration = 600;
   let startTime  = null;
 
@@ -99,8 +106,8 @@ export function flyTo(svg, panZoom, svgPoint, onComplete) {
     const t     = Math.min((now - startTime) / duration, 1);
     const eased = easeInOutCubic(t);
 
-    // zoom() first, then pan() — zoom() adjusts pan internally to keep
-    // screen centre fixed, pan() immediately overwrites with our target.
+    // zoom() first, then pan() — zoom() adjusts pan to keep screen centre
+    // fixed, pan() immediately overwrites with our target position.
     panZoom.zoom(startZoom + (PLACEMENT_ZOOM_LEVEL - startZoom) * eased);
     panZoom.pan({
       x: startPan.x + (targetPan.x - startPan.x) * eased,

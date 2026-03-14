@@ -27,12 +27,16 @@ function createCoordLabel() {
 export function initPinPlacement(svg, panZoom) {
   const coordLabel = createCoordLabel();
 
-  // Toggle placement mode with 'p'
+  // 'p' only toggles placement from browse — ignored in flying/editing
   document.addEventListener("keydown", e => {
     if (e.key !== "p") return;
-    const next = getMode() === Mode.PLACING ? Mode.BROWSE : Mode.PLACING;
-    setMode(next);
-    showNotification(next === Mode.PLACING ? "Pin placement mode ON" : "Pin placement mode OFF");
+    if (getMode() === Mode.BROWSE) {
+      setMode(Mode.PLACING);
+      showNotification("Pin placement mode ON");
+    } else if (getMode() === Mode.PLACING) {
+      setMode(Mode.BROWSE);
+      showNotification("Pin placement mode OFF");
+    }
   });
 
   // Drop a pin on click, then fly the camera to it
@@ -49,8 +53,7 @@ export function initPinPlacement(svg, panZoom) {
       y:           svgPoint.y,
     });
 
-    renderPin(pin); // pin appears immediately; camera flies to it next
-
+    renderPin(pin);
     flyTo(svg, panZoom, svgPoint, () => setMode(Mode.EDITING));
   });
 
