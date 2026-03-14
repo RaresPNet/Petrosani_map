@@ -223,7 +223,22 @@ export function setupPanZoom(svg) {
     cursor: default;
   `;
   document.body.appendChild(clickOutside);
-  clickOutside.addEventListener("click", () => closeEditing());
+
+  let downX = 0, downY = 0;
+  document.addEventListener("mousedown", e => { downX = e.clientX; downY = e.clientY; });
+  const wasDrag = e => Math.sqrt((e.clientX-downX)**2 + (e.clientY-downY)**2) > 4;
+
+  clickOutside.addEventListener("click", e => {
+    if (!wasDrag(e)) closeEditing();
+  });
+
+  // Selection: clicking the map (not a pin) dismisses if not a drag
+  svg.addEventListener("click", e => {
+    if (getMode() !== Mode.SELECTION) return;
+    if (wasDrag(e)) return;
+    if (e.target.closest(".pin-interactive")) return;
+    closeSelection();
+  });
 
   svg.addEventListener("wheel", e => {
     if (!canInteract()) e.preventDefault();

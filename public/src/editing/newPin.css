@@ -268,8 +268,8 @@
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
-.pin-type-arrow--up   { top: calc(50% - 110px); }
-.pin-type-arrow--down { top: calc(50% - 14px);  }
+.pin-type-arrow--up   { top: calc(50% - 150px); }
+.pin-type-arrow--down { top: calc(50% - 4px);   }
 
 .pin-type-arrow:hover {
   opacity: 1;

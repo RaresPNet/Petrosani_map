@@ -66,12 +66,12 @@ body.pin-mode { cursor: crosshair; }
 }
 
 .pin-label {
-  font-size: 14px;
+  font-size: 21px;
   text-anchor: end;
   fill: var(--label-color);
   paint-order: stroke;
   stroke: white;
-  stroke-width: 3;
+  stroke-width: 4.5;
   stroke-linejoin: round;
 
   opacity: 0;
