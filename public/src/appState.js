@@ -1,34 +1,35 @@
-let mode = "browse";
-const listeners = new Set();
+// ─── Mode enum ───────────────────────────────────────────────────────────────
+// browse   — normal map interaction (pan, zoom, no pin placement)
+// placing  — 'p' pressed, crosshair cursor, next click drops a pin
+// flying   — camera animating to the dropped pin, all input locked
+// editing  — pin centred on screen, input locked, detail panel open
 
-export function setMode(nextMode) {
-  mode = nextMode;
+export const Mode = Object.freeze({
+  BROWSE:   "browse",
+  PLACING:  "placing",
+  FLYING:   "flying",
+  EDITING:  "editing",
+});
+
+let mode = Mode.BROWSE;
+const listeners = [];
+
+export function getMode()    { return mode; }
+
+export function setMode(next) {
+  if (next === mode) return;
+  mode = next;
   listeners.forEach(fn => fn(mode));
 }
 
-export function getMode() {
-  return mode;
-}
-
 export function onModeChange(fn) {
-  listeners.add(fn);
+  listeners.push(fn);
 }
 
+// ─── Predicates ───────────────────────────────────────────────────────────────
+// Import these instead of string-comparing getMode() at call sites.
 
-// --- permissions derived from mode ---
-
-export function canPan() {
-  return mode !== "editing";
-}
-
-export function canZoom() {
-  return mode !== "editing";
-}
-
-export function canPlacePin() {
-  return mode === "placing";
-}
-
-export function isEditing() {
-  return mode === "editing";
-}
+export const canInteract  = () => mode === Mode.BROWSE || mode === Mode.PLACING;
+export const canPlacePin  = () => mode === Mode.PLACING;
+export const isFlying     = () => mode === Mode.FLYING;
+export const isEditing    = () => mode === Mode.EDITING;

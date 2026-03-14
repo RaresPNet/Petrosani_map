@@ -1,105 +1,69 @@
 import { Pin, renderPin } from "./pins.js";
-import { getSVGPoint, svgPointToScreen } from "./svgCoords.js";
-import { setMode, getMode, canPlacePin } from "../appState.js";
-import { PLACEMENT_ZOOM_LEVEL } from "../constants.js";
+import { getSVGPoint } from "./svgCoords.js";
+import { setMode, getMode, canPlacePin, Mode } from "../appState.js";
+import { flyTo } from "./panZoom.js";
+
+// ─── Notification ─────────────────────────────────────────────────────────────
 
 function showNotification(text) {
   const el = document.getElementById("pin-notification");
   if (!el) return;
-
   el.textContent = text;
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 1500);
 }
 
+// ─── Coord label ──────────────────────────────────────────────────────────────
+
+function createCoordLabel() {
+  const el = document.createElement("div");
+  el.id = "coord-label";
+  document.body.appendChild(el);
+  return el;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
 export function initPinPlacement(svg, panZoom) {
+  const coordLabel = createCoordLabel();
 
-  const coordLabel = document.createElement("div");
-  coordLabel.id = "coord-label";
-  document.body.appendChild(coordLabel);
-
-  // --- toggle placement mode ---
-
-  document.addEventListener("keydown", (e) => {
+  // Toggle placement mode with 'p'
+  document.addEventListener("keydown", e => {
     if (e.key !== "p") return;
-
-    const next = getMode() === "placing" ? "browse" : "placing";
+    const next = getMode() === Mode.PLACING ? Mode.BROWSE : Mode.PLACING;
     setMode(next);
-
-    showNotification(
-      next === "placing"
-        ? "Pin placement mode ON"
-        : "Pin placement mode OFF"
-    );
+    showNotification(next === Mode.PLACING ? "Pin placement mode ON" : "Pin placement mode OFF");
   });
 
-  // --- place pin ---
-
-  svg.addEventListener("click", (e) => {
+  // Drop a pin on click, then fly the camera to it
+  svg.addEventListener("click", e => {
     if (!canPlacePin()) return;
 
-    const point = getSVGPoint(e);
-
+    const svgPoint = getSVGPoint(e);
     const pin = new Pin({
-      id: crypto.randomUUID(),
-      name: "Introduceți numele locației",
+      id:          crypto.randomUUID(),
+      name:        "Introduceți numele locației",
       description: "",
-      type: "normal",
-      x: point.x,
-      y: point.y,
+      type:        "normal",
+      x:           svgPoint.x,
+      y:           svgPoint.y,
     });
 
-    const startZoom = panZoom.getZoom();
-    const targetZoom = PLACEMENT_ZOOM_LEVEL;
+    renderPin(pin); // pin appears immediately; camera flies to it next
 
-    const duration = 500;
-    const startTime = performance.now();
-
-    let pinRendered = false;
-
-    function animate(time) {
-      const t = Math.min((time - startTime) / duration, 1);
-
-      const eased =
-        t < 0.5
-          ? 4 * t * t * t
-          : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-      const zoom = startZoom + (targetZoom - startZoom) * eased;
-
-      const screenPoint = svgPointToScreen(point.x, point.y);
-      panZoom.zoomAtPoint(zoom, screenPoint);
-
-      // render pin late in the animation
-      if (!pinRendered && t > 0.6) {
-        renderPin(pin);
-        pinRendered = true;
-      }
-
-      if (t < 1) {
-        requestAnimationFrame(animate);
-      } else {
-        if (!pinRendered) renderPin(pin);
-        setMode("editing");
-      }
-    }
-
-    requestAnimationFrame(animate);
+    flyTo(svg, panZoom, svgPoint, () => setMode(Mode.EDITING));
   });
 
-  // --- coordinate helper while placing ---
-
-  svg.addEventListener("mousemove", (e) => {
+  // Coord readout while hovering in placement mode
+  svg.addEventListener("mousemove", e => {
     if (!canPlacePin()) {
       coordLabel.style.display = "none";
       return;
     }
-
     const point = getSVGPoint(e);
-
     coordLabel.style.display = "block";
-    coordLabel.style.left = `${e.clientX + 16}px`;
-    coordLabel.style.top = `${e.clientY}px`;
-    coordLabel.textContent = `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`;
+    coordLabel.style.left    = `${e.clientX + 16}px`;
+    coordLabel.style.top     = `${e.clientY}px`;
+    coordLabel.textContent   = `${point.x.toFixed(1)}, ${point.y.toFixed(1)}`;
   });
 }

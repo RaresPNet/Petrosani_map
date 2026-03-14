@@ -1,95 +1,146 @@
-import { MAX_ZOOM, LABEL_ZOOM_THRESHOLD } from "../constants.js";
-import { canPan, canZoom, getMode, onModeChange } from "../appState.js";
+import {
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD,
+} from "../constants.js";
+import { canInteract, isFlying, getMode, onModeChange, Mode, setMode } from "../appState.js";
 
 let limits = null;
-let zoomTimeout = null;
+let zoomCursorTimer = null;
+let previousZoom = null;
 
-// --- Cursor ---
+// ─── Cursor ───────────────────────────────────────────────────────────────────
 
 function setCursor(state) {
   document.body.classList.remove("panning", "zoom-in", "zoom-out", "pin-mode");
   if (state) document.body.classList.add(state);
 }
 
-let previousZoom = null;
-
 function onZoomCursor(panZoom) {
   const zoom = panZoom.getZoom();
-  const direction =
-    previousZoom === null || zoom > previousZoom ? "zoom-in" : "zoom-out";
-
+  setCursor(previousZoom === null || zoom > previousZoom ? "zoom-in" : "zoom-out");
   previousZoom = zoom;
 
-  setCursor(direction);
-
-  clearTimeout(zoomTimeout);
-  zoomTimeout = setTimeout(() => {
+  clearTimeout(zoomCursorTimer);
+  zoomCursorTimer = setTimeout(() => {
     previousZoom = null;
-
-    if (getMode() === "placing") setCursor("pin-mode");
-    else setCursor(null);
-
+    setCursor(getMode() === Mode.PLACING ? "pin-mode" : null);
   }, 150);
 }
 
-// --- Pan limits ---
+// ─── Pan limits ───────────────────────────────────────────────────────────────
 
 function computeLimits(panZoom) {
-  const sizes = panZoom.getSizes();
+  const { viewBox, realZoom, width, height } = panZoom.getSizes();
+  const mapW = viewBox.width  * realZoom;
+  const mapH = viewBox.height * realZoom;
 
-  const mapWidth = sizes.viewBox.width * sizes.realZoom;
-  const mapHeight = sizes.viewBox.height * sizes.realZoom;
-
+  // left/top are the maximum (least negative) allowed pan values.
+  // right/bottom are the minimum (most negative) allowed pan values.
   limits = {
-    left:   mapWidth  > sizes.width  ? 0                      : sizes.width  - mapWidth,
-    right:  mapWidth  > sizes.width  ? sizes.width  - mapWidth : 0,
-    top:    mapHeight > sizes.height ? 0                      : sizes.height - mapHeight,
-    bottom: mapHeight > sizes.height ? sizes.height - mapHeight : 0,
+    left:   mapW > width  ? 0            : width  - mapW,
+    right:  mapW > width  ? width  - mapW : 0,
+    top:    mapH > height ? 0            : height - mapH,
+    bottom: mapH > height ? height - mapH : 0,
   };
 }
 
-function clampPan(panZoom, oldPan, newPan) {
+function clampPan(_oldPan, newPan) {
   if (!limits) return newPan;
-
   return {
-    x: Math.max(limits.right, Math.min(limits.left, newPan.x)),
-    y: Math.max(limits.bottom, Math.min(limits.top, newPan.y)),
+    x: Math.max(limits.right, Math.min(limits.left,  newPan.x)),
+    y: Math.max(limits.bottom, Math.min(limits.top,  newPan.y)),
   };
 }
 
-// --- Pin scaling ---
+// ─── Pin scaling ──────────────────────────────────────────────────────────────
 
 export function updatePinScale(panZoom) {
-  const zoom = panZoom.getZoom();
-  const scale = 1 / Math.min(zoom, MAX_ZOOM);
-
-  document.querySelectorAll(".pin-content").forEach((el) => {
-    el.setAttribute("transform", `scale(${scale})`);
-  });
+  const scale = 1 / Math.min(panZoom.getZoom(), MAX_ZOOM);
+  document.querySelectorAll(".pin-content").forEach(el =>
+    el.setAttribute("transform", `scale(${scale})`)
+  );
 }
 
-// --- Setup ---
+// ─── Fly-in animation ─────────────────────────────────────────────────────────
+// Owned here because it is purely a camera operation.
+// pinPlacement.js calls this after rendering the pin.
+//
+// svgPanZoom's pan coordinate space satisfies:
+//   screenPos = svgPoint * zoom + pan
+// So to centre svgPoint at targetZoom:
+//   targetPan = screenCenter - svgPoint * targetZoom
+//
+// We disable user pan/zoom during the animation so the hooks can't interfere,
+// then restore them (minus mousewheel, which stays off in editing mode).
+// disablePan/disableZoom only block user input; programmatic zoom() and pan()
+// still pass through beforePan — isFlying() lets those through unconditionally.
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+export function flyTo(svg, panZoom, svgPoint, onComplete) {
+  const startZoom = panZoom.getZoom();
+  const startPan  = panZoom.getPan();
+  const targetPan = {
+    x: svg.clientWidth  / 2 - svgPoint.x * PLACEMENT_ZOOM_LEVEL,
+    y: svg.clientHeight / 2 - svgPoint.y * PLACEMENT_ZOOM_LEVEL,
+  };
+  const duration = 600;
+  let startTime  = null;
+
+  setMode(Mode.FLYING);
+  panZoom.disablePan();
+  panZoom.disableZoom();
+  panZoom.disableMouseWheelZoom();
+  panZoom.setMaxZoom(Infinity);
+
+  function tick(now) {
+    if (!startTime) startTime = now;
+    const t     = Math.min((now - startTime) / duration, 1);
+    const eased = easeInOutCubic(t);
+
+    // zoom() first, then pan() — zoom() adjusts pan internally to keep
+    // screen centre fixed, pan() immediately overwrites with our target.
+    panZoom.zoom(startZoom + (PLACEMENT_ZOOM_LEVEL - startZoom) * eased);
+    panZoom.pan({
+      x: startPan.x + (targetPan.x - startPan.x) * eased,
+      y: startPan.y + (targetPan.y - startPan.y) * eased,
+    });
+
+    if (t < 1) { requestAnimationFrame(tick); return; }
+
+    panZoom.enablePan();
+    panZoom.enableZoom();
+    // Mousewheel stays disabled — onModeChange re-enables it on browse/placing.
+    panZoom.setMaxZoom(MAX_ZOOM);
+    updatePinScale(panZoom);
+    onComplete();
+  }
+
+  requestAnimationFrame(tick);
+}
+
+// ─── Setup ────────────────────────────────────────────────────────────────────
 
 export function setupPanZoom(svg) {
+  // Trackpad pinch-to-zoom fires as a wheel event with ctrlKey=true in most
+  // browsers, bypassing svgPanZoom's disableMouseWheelZoom(). Block it at the
+  // DOM level when interaction is not allowed.
+  svg.addEventListener("wheel", e => {
+    if (!canInteract()) e.preventDefault();
+  }, { passive: false });
 
-  svg.addEventListener("mousedown", () => {
-    if (canPan()) setCursor("panning");
-  });
+  svg.addEventListener("mousedown", () => { if (canInteract()) setCursor("panning"); });
+  window.addEventListener("mouseup", () => { if (canInteract()) setCursor(null); });
 
-  window.addEventListener("mouseup", () => {
-    if (canPan()) setCursor(null);
-  });
-
-  onModeChange((mode) => {
-    console.log("Mode:", mode);
-
-    if (mode === "placing") setCursor("pin-mode");
+  onModeChange(mode => {
+    if (mode === Mode.PLACING) setCursor("pin-mode");
     else setCursor(null);
+    if (mode === Mode.BROWSE || mode === Mode.PLACING) panZoom.enableMouseWheelZoom();
+    if (mode === Mode.EDITING) panZoom.disableMouseWheelZoom();
   });
 
-  let panZoom;
-
-  panZoom = svgPanZoom(svg, {
+  const panZoom = svgPanZoom(svg, {
     zoomEnabled: true,
     panEnabled: true,
     dblClickZoomEnabled: false,
@@ -98,37 +149,24 @@ export function setupPanZoom(svg) {
     fit: true,
     center: true,
 
-    beforePan: (oldPan, newPan) => {
-      console.log("beforePan called");
-      console.log("oldPan:", oldPan);
-      console.log("newPan:", newPan);
-      console.log("canPan():", canPan());
+    beforePan(oldPan, newPan) {
+      // Zoom-induced beforePan: svgPanZoom fires this on every wheel zoom to
+      // adjust for cursor-relative zoom. No pan delta — pass through unchanged.
+      if (oldPan.x === newPan.x && oldPan.y === newPan.y) return newPan;
 
-      if (!canPan()) {
-        console.log("Pan blocked by mode");
-        return oldPan;
-      }
+      // Animation-driven pan: programmatic pan() also goes through beforePan.
+      // Let it through — disablePan() only blocks user drag events.
+      if (isFlying()) return newPan;
 
-      if (getMode() === "placing") {
-        console.log("Pan allowed (no clamp)");
-        return newPan;
-      }
-
-      const clamped = clampPan(panZoom, oldPan, newPan);
-      console.log("Pan allowed:", clamped);
-      return clamped;
+      if (!canInteract()) return oldPan;
+      return clampPan(oldPan, newPan);
     },
 
-    onZoom: () => {
-      const zoom = panZoom.getZoom();
-
+    onZoom() {
       computeLimits(panZoom);
       updatePinScale(panZoom);
       onZoomCursor(panZoom);
-
-      svg.classList.toggle("show-labels", zoom >= LABEL_ZOOM_THRESHOLD);
-
-      panZoom.setMaxZoom(canZoom() ? MAX_ZOOM : 100);
+      svg.classList.toggle("show-labels", panZoom.getZoom() >= LABEL_ZOOM_THRESHOLD);
     },
   });
 
@@ -136,9 +174,7 @@ export function setupPanZoom(svg) {
     panZoom.resize();
     panZoom.fit();
     panZoom.center();
-
     computeLimits(panZoom);
-
     panZoom.setMinZoom(panZoom.getZoom());
     panZoom.setMaxZoom(MAX_ZOOM);
   });
