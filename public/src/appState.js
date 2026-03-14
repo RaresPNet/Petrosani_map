@@ -26,6 +26,14 @@ export function onModeChange(fn) {
   listeners.push(fn);
 }
 
+// ─── Active pin ───────────────────────────────────────────────────────────────
+// Stored here so modules that can't share a singleton (different import paths)
+// can all read/write the same pin reference.
+
+let activePin = null;
+export const getActivePin = ()    => activePin;
+export const setActivePin = (pin) => { activePin = pin; };
+
 // ─── Predicates ───────────────────────────────────────────────────────────────
 // Import these instead of string-comparing getMode() at call sites.
 

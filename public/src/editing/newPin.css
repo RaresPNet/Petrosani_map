@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+
+/* ── Panel ────────────────────────────────────────────────────────────────── */
+
+#new-pin-panel {
+  position: fixed;
+
+  /* Centred on the right half of the screen */
+  right: calc(25% - 240px);
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.10),
+    0 1px 4px  rgba(0, 0, 0, 0.06);
+  border-left: 3px solid #b8ddd0;
+
+  opacity: 0;
+  pointer-events: none;
+  /* No delay — fades in at the same time as the map dim (both 600ms) */
+  transition: opacity 600ms ease;
+  z-index: 10;
+}
+
+#new-pin-panel.visible {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.panel-inner {
+  padding: 40px 40px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Title ────────────────────────────────────────────────────────────────── */
+
+.panel-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 26px;
+  color: #1a1a1a;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 0 0 10px;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color 200ms ease;
+  caret-color: #4a9d87;
+}
+
+.panel-title::placeholder {
+  color: #d0d0d0;
+  font-style: italic;
+}
+
+.panel-title:focus {
+  border-bottom-color: #b8ddd0;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+
+.panel-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 24px 0;
+}
+
+/* ── Description ──────────────────────────────────────────────────────────── */
+
+.panel-description {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 1.75;
+  color: #444;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 100px;
+  padding: 0;
+  border-bottom: 1.5px solid transparent;
+  transition: border-color 200ms ease;
+  caret-color: #4a9d87;
+}
+
+.panel-description::placeholder {
+  color: #d0d0d0;
+}
+
+.panel-description:focus {
+  border-bottom-color: #b8ddd0;
+}
+
+/* ── Save button ──────────────────────────────────────────────────────────── */
+
+.panel-save {
+  margin-top: 32px;
+  width: 100%;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+  background: #4a9d87;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 0;
+  cursor: pointer;
+  transition: background 180ms ease, transform 100ms ease;
+}
+
+.panel-save:hover  { background: #3d8a76; }
+.panel-save:active { transform: scale(0.98); }
+
+/* ── Active pin punches through dim overlay ───────────────────────────────── */
+
+.pin-active .pin-content image {
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
+}

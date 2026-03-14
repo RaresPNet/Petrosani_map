@@ -1,7 +1,7 @@
 import { Pin, renderPin } from "./pins.js";
 import { getSVGPoint } from "./svgCoords.js";
-import { setMode, getMode, canPlacePin, Mode } from "../appState.js";
-import { flyTo } from "./panZoom.js";
+import { setMode, getMode, canPlacePin, setActivePin, Mode } from "../appState.js";
+import { flyTo } from "./camera.js";
 
 // ─── Notification ─────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ export function initPinPlacement(svg, panZoom) {
     const svgPoint = getSVGPoint(e);
     const pin = new Pin({
       id:          crypto.randomUUID(),
-      name:        "Introduceți numele locației",
+      name:        "",
       description: "",
       type:        "normal",
       x:           svgPoint.x,
@@ -54,6 +54,7 @@ export function initPinPlacement(svg, panZoom) {
     });
 
     renderPin(pin);
+    setActivePin(pin);                              // store in appState singleton
     flyTo(svg, panZoom, svgPoint, () => setMode(Mode.EDITING));
   });
 
