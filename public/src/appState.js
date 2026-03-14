@@ -35,15 +35,25 @@ export function onModeChange(fn) { listeners.push(fn); }
 
 // ─── Active pin (being edited — new or existing) ──────────────────────────────
 
-let activePin      = null;
-let activePinIsNew = false;
+let activePin         = null;
+let activePinIsNew    = false;
+let activePinSnapshot = null;
 
 export const getActivePin = ()             => activePin;
 export const activePinNew = ()             => activePinIsNew;
 export const setActivePin = (pin, isNew = false) => {
-  activePin      = pin;
-  activePinIsNew = isNew;
+  activePin         = pin;
+  activePinIsNew    = isNew;
+  // Snapshot original values so edits can be reverted on discard
+  activePinSnapshot = isNew ? null : { name: pin.name, description: pin.description, type: pin.type };
 };
+
+export function revertActivePin() {
+  if (!activePin || !activePinSnapshot) return;
+  activePin.name        = activePinSnapshot.name;
+  activePin.description = activePinSnapshot.description;
+  activePin.type        = activePinSnapshot.type;
+}
 
 // ─── Selected pin (being viewed) ──────────────────────────────────────────────
 

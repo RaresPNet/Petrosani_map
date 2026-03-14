@@ -1,8 +1,8 @@
 import {
   MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
-import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, onModeChange, Mode, setMode } from "../appState.js";
-import { deletePin, restoreSelectedPinType } from "./pins.js";
+import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
+import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel } from "./pins.js";
 
 let limits = null;
 let zoomCursorTimer = null;
@@ -201,7 +201,15 @@ export function closeSelection() {
 export function closeEditing(keep = false) {
   if (getMode() !== Mode.EDITING) return;
   const pin = getActivePin();
-  if (!keep && activePinNew() && pin) deletePin(pin.id);
+  if (!keep && pin) {
+    if (activePinNew()) {
+      deletePin(pin.id);
+    } else {
+      revertActivePin();     // restore name, description, type in memory
+      updatePinVisual(pin);  // restore icon + label colour on map
+      updatePinLabel(pin);   // restore label text on map
+    }
+  }
   if (pin) {
     flyOut({ x: pin.x, y: pin.y });
   } else {
