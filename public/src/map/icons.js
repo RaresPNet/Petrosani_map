@@ -52,4 +52,8 @@ export const ICONS = Object.freeze({
     icon: './assets/icons/dot.ico',
     textColor: '#78909c'
   },
+  selected: {
+    icon: './assets/icons/selected.ico',
+    textColor: '#b61f1d'
+  },
 });

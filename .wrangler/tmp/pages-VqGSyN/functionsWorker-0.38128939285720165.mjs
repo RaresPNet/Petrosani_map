@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-Gqs3db/checked-fetch.js
+// ../.wrangler/tmp/bundle-GY38Jj/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,6 +27,37 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
+// api/pins/[id].js
+async function onRequestPatch({ params, request, env }) {
+  try {
+    const id = params.id;
+    const fields = await request.json();
+    const allowed = ["name", "description", "type", "x", "y"];
+    const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
+    if (updates.length === 0) {
+      return Response.json({ error: "No valid fields to update" }, { status: 400 });
+    }
+    const setClauses = updates.map(([k]) => `${k} = ?`).join(", ");
+    const values = updates.map(([, v]) => v);
+    await env.DB.prepare(
+      `UPDATE pins SET ${setClauses} WHERE id = ?`
+    ).bind(...values, id).run();
+    return Response.json({ id, ...Object.fromEntries(updates) });
+  } catch (err) {
+    return Response.json({ error: "Failed to update pin" }, { status: 500 });
+  }
+}
+__name(onRequestPatch, "onRequestPatch");
+async function onRequestDelete({ params, env }) {
+  try {
+    await env.DB.prepare("DELETE FROM pins WHERE id = ?").bind(params.id).run();
+    return new Response(null, { status: 204 });
+  } catch (err) {
+    return Response.json({ error: "Failed to delete pin" }, { status: 500 });
+  }
+}
+__name(onRequestDelete, "onRequestDelete");
+
 // api/pins.js
 async function onRequestGet({ env }) {
   try {
@@ -35,22 +66,52 @@ async function onRequestGet({ env }) {
     ).all();
     return Response.json(results);
   } catch (err) {
-    return Response.json(
-      { error: "Failed to fetch pins" },
-      { status: 500 }
-    );
+    return Response.json({ error: "Failed to fetch pins" }, { status: 500 });
   }
 }
 __name(onRequestGet, "onRequestGet");
+async function onRequestPost({ request, env }) {
+  try {
+    const { id, name, description, type, x, y } = await request.json();
+    await env.DB.prepare(
+      "INSERT INTO pins (id, name, description, type, x, y) VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(id, name, description, type, x, y).run();
+    return Response.json({ id, name, description, type, x, y }, { status: 201 });
+  } catch (err) {
+    return Response.json({ error: "Failed to create pin" }, { status: 500 });
+  }
+}
+__name(onRequestPost, "onRequestPost");
 
 // ../.wrangler/tmp/pages-VqGSyN/functionsRoutes-0.05294242855349207.mjs
 var routes = [
+  {
+    routePath: "/api/pins/:id",
+    mountPath: "/api/pins",
+    method: "DELETE",
+    middlewares: [],
+    modules: [onRequestDelete]
+  },
+  {
+    routePath: "/api/pins/:id",
+    mountPath: "/api/pins",
+    method: "PATCH",
+    middlewares: [],
+    modules: [onRequestPatch]
+  },
   {
     routePath: "/api/pins",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet]
+  },
+  {
+    routePath: "/api/pins",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost]
   }
 ];
 
@@ -541,7 +602,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-Gqs3db/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-GY38Jj/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -573,7 +634,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-Gqs3db/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-GY38Jj/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

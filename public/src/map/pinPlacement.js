@@ -53,8 +53,8 @@ export function initPinPlacement(svg, panZoom) {
       y:           svgPoint.y,
     });
 
-    renderPin(pin);
-    setActivePin(pin);                              // store in appState singleton
+    renderPin(pin, true);
+    setActivePin(pin, true);                        // true = new pin
     flyTo(svg, panZoom, svgPoint, () => setMode(Mode.EDITING));
   });
 

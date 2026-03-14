@@ -1,7 +1,7 @@
 import { ICONS } from "./icons.js";
 import { LABEL_STYLE } from "../constants.js";
 import { fetchPins } from "./api/client.js";
-import { onModeChange, getActivePin, Mode } from "../appState.js";
+import { onModeChange, getActivePin, setActivePin, Mode, getMode } from "../appState.js";
 
 // ─── Pin model ────────────────────────────────────────────────────────────────
 
@@ -15,8 +15,17 @@ export class Pin {
     this.y           = y;
   }
 
-  get icon()      { return ICONS[this.type]?.icon      || ICONS.tree.icon; }
-  get textColor() { return ICONS[this.type]?.textColor || "#000"; }
+  get icon()      { return ICONS[this.type]?.icon      || ICONS.normal.icon; }
+  get textColor() { return ICONS[this.type]?.textColor || "#78909c"; }
+}
+
+// ─── Type cycling ─────────────────────────────────────────────────────────────
+
+const TYPE_KEYS = Object.keys(ICONS).filter(k => k !== "selected");
+
+export function cycleType(pin, direction) {
+  const idx = TYPE_KEYS.indexOf(pin.type);
+  pin.type  = TYPE_KEYS[(idx + direction + TYPE_KEYS.length) % TYPE_KEYS.length];
 }
 
 // ─── Shared SVG refs ──────────────────────────────────────────────────────────
@@ -26,17 +35,22 @@ let pinLayer    = null;
 let dimOverlay  = null;
 let activeGroup = null;
 
+// Set by initPinInteraction — called when an existing pin is clicked
+let onPinClick = null;
+export function setOnPinClick(fn) { onPinClick = fn; }
+
 export function initSVG(svg) {
   svgElement = svg;
   pinLayer   = svg.querySelector("#pin-layer");
+  console.log('[initSVG] pin-layer has', pinLayer.children.length, 'existing children');
 
   dimOverlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-  dimOverlay.setAttribute("id", "dim-overlay");
-  dimOverlay.setAttribute("x", "-10000");
-  dimOverlay.setAttribute("y", "-10000");
+  dimOverlay.setAttribute("id",     "dim-overlay");
+  dimOverlay.setAttribute("x",      "-10000");
+  dimOverlay.setAttribute("y",      "-10000");
   dimOverlay.setAttribute("width",  "30000");
   dimOverlay.setAttribute("height", "30000");
-  dimOverlay.setAttribute("fill", "rgba(0,0,0,0.45)");
+  dimOverlay.setAttribute("fill",   "rgba(0,0,0,0.45)");
   dimOverlay.style.opacity       = "0";
   dimOverlay.style.transition    = "opacity 600ms ease";
   dimOverlay.style.pointerEvents = "none";
@@ -44,7 +58,7 @@ export function initSVG(svg) {
 
   onModeChange(mode => {
     if (mode === Mode.EDITING) {
-      const pin = getActivePin();
+      const pin   = getActivePin();
       activeGroup = pin ? pinLayer.querySelector(`[data-pin-id="${pin.id}"]`) : null;
       dimOverlay.style.opacity = "1";
       if (activeGroup) activeGroup.classList.add("pin-active");
@@ -56,14 +70,26 @@ export function initSVG(svg) {
   });
 }
 
+// ─── Delete / visual update / label update ────────────────────────────────────
 
+export function deletePin(id) {
+  const group = pinLayer.querySelector(`[data-pin-id="${id}"]`);
+  if (group) group.remove();
+}
 
-
-// ─── Label update — called live as the user types ─────────────────────────────
+export function updatePinVisual(pin) {
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (!group) return;
+  const content = group.querySelector(".pin-content");
+  const icon    = content.querySelector("image");
+  if (icon) icon.setAttribute("href", pin.icon);
+  const label = content.querySelector(".pin-label");
+  if (label) label.style.setProperty("--label-color", pin.textColor);
+}
 
 export function updatePinLabel(pin) {
   const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
-  if (!group) { console.warn('[updatePinLabel] group not found for pin', pin.id); return; }
+  if (!group) return;
   const content  = group.querySelector(".pin-content");
   const oldLabel = content.querySelector(".pin-label");
   if (oldLabel) oldLabel.remove();
@@ -72,15 +98,17 @@ export function updatePinLabel(pin) {
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 
-export function renderPin(pin) {
-  const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
-  group.setAttribute("data-pin-id", pin.id);
+function svgEl(tag) { return document.createElementNS("http://www.w3.org/2000/svg", tag); }
 
-  const content = document.createElementNS("http://www.w3.org/2000/svg", "g");
+export function renderPin(pin, isNew = false) {
+  const group = svgEl("g");
+  group.setAttribute("transform",   `translate(${pin.x}, ${pin.y})`);
+  group.setAttribute("data-pin-id",  pin.id);
+
+  const content = svgEl("g");
   content.classList.add("pin-content");
 
-  const icon = document.createElementNS("http://www.w3.org/2000/svg", "image");
+  const icon = svgEl("image");
   icon.setAttribute("href",   pin.icon);
   icon.setAttribute("width",  24);
   icon.setAttribute("height", 24);
@@ -88,14 +116,26 @@ export function renderPin(pin) {
   icon.setAttribute("y", -24);
 
   content.appendChild(icon);
-  // Only render label if there's a name — placeholder text stays in the panel
   if (pin.name) content.appendChild(makeLabel(pin));
   group.appendChild(content);
   pinLayer.appendChild(group);
+
+  // Existing pins (loaded from DB) get hover + click interaction
+  if (!isNew) attachPinInteraction(group, pin);
+}
+
+function attachPinInteraction(group, pin) {
+  group.classList.add("pin-interactive");
+  group.addEventListener("click", e => {
+    if (getMode() !== Mode.BROWSE) return;
+    e.stopPropagation();
+    setActivePin(pin, false);  // false = existing pin
+    if (onPinClick) onPinClick(pin);
+  });
 }
 
 function makeLabel(pin) {
-  const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  const label = svgEl("text");
   label.classList.add("pin-label");
   label.style.setProperty("--label-color", pin.textColor);
   label.setAttribute("y", LABEL_STYLE.baseY);
@@ -119,7 +159,7 @@ function makeLabel(pin) {
 
   const offset = -((lines.length - 1) * LABEL_STYLE.lineHeight) / 2;
   lines.forEach((text, i) => {
-    const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    const tspan = svgEl("tspan");
     tspan.textContent = text;
     tspan.setAttribute("x",  LABEL_STYLE.xOffset);
     tspan.setAttribute("dy", i === 0 ? offset : LABEL_STYLE.lineHeight);
@@ -133,5 +173,7 @@ function makeLabel(pin) {
 
 export async function loadPins() {
   const pins = await fetchPins();
-  pins.map(data => new Pin(data)).forEach(renderPin);
+  console.log('[loadPins] loaded', pins.length, 'pins from DB');
+  pins.forEach(pin => console.log(`  [pin] "${pin.name}" (${pin.type}) @ ${pin.x.toFixed(1)}, ${pin.y.toFixed(1)}`));
+  pins.forEach(pin => renderPin(pin, false));
 }

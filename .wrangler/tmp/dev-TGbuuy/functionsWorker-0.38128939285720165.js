@@ -55,6 +55,37 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
     return Reflect.apply(target, thisArg, argArray);
   }
 });
+async function onRequestPatch({ params, request, env }) {
+  try {
+    const id = params.id;
+    const fields = await request.json();
+    const allowed = ["name", "description", "type", "x", "y"];
+    const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
+    if (updates.length === 0) {
+      return Response.json({ error: "No valid fields to update" }, { status: 400 });
+    }
+    const setClauses = updates.map(([k]) => `${k} = ?`).join(", ");
+    const values = updates.map(([, v]) => v);
+    await env.DB.prepare(
+      `UPDATE pins SET ${setClauses} WHERE id = ?`
+    ).bind(...values, id).run();
+    return Response.json({ id, ...Object.fromEntries(updates) });
+  } catch (err) {
+    return Response.json({ error: "Failed to update pin" }, { status: 500 });
+  }
+}
+__name(onRequestPatch, "onRequestPatch");
+__name2(onRequestPatch, "onRequestPatch");
+async function onRequestDelete({ params, env }) {
+  try {
+    await env.DB.prepare("DELETE FROM pins WHERE id = ?").bind(params.id).run();
+    return new Response(null, { status: 204 });
+  } catch (err) {
+    return Response.json({ error: "Failed to delete pin" }, { status: 500 });
+  }
+}
+__name(onRequestDelete, "onRequestDelete");
+__name2(onRequestDelete, "onRequestDelete");
 async function onRequestGet({ env }) {
   try {
     const { results } = await env.DB.prepare(
@@ -62,21 +93,52 @@ async function onRequestGet({ env }) {
     ).all();
     return Response.json(results);
   } catch (err) {
-    return Response.json(
-      { error: "Failed to fetch pins" },
-      { status: 500 }
-    );
+    return Response.json({ error: "Failed to fetch pins" }, { status: 500 });
   }
 }
 __name(onRequestGet, "onRequestGet");
 __name2(onRequestGet, "onRequestGet");
+async function onRequestPost({ request, env }) {
+  try {
+    const { id, name, description, type, x, y } = await request.json();
+    await env.DB.prepare(
+      "INSERT INTO pins (id, name, description, type, x, y) VALUES (?, ?, ?, ?, ?, ?)"
+    ).bind(id, name, description, type, x, y).run();
+    return Response.json({ id, name, description, type, x, y }, { status: 201 });
+  } catch (err) {
+    return Response.json({ error: "Failed to create pin" }, { status: 500 });
+  }
+}
+__name(onRequestPost, "onRequestPost");
+__name2(onRequestPost, "onRequestPost");
 var routes = [
+  {
+    routePath: "/api/pins/:id",
+    mountPath: "/api/pins",
+    method: "DELETE",
+    middlewares: [],
+    modules: [onRequestDelete]
+  },
+  {
+    routePath: "/api/pins/:id",
+    mountPath: "/api/pins",
+    method: "PATCH",
+    middlewares: [],
+    modules: [onRequestPatch]
+  },
   {
     routePath: "/api/pins",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet]
+  },
+  {
+    routePath: "/api/pins",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost]
   }
 ];
 function lexer(str) {

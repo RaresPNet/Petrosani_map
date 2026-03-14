@@ -1,11 +1,15 @@
 import {
-  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
-import { canInteract, isFlying, getMode, onModeChange, Mode, setMode } from "../appState.js";
+import { canInteract, isFlying, getMode, getActivePin, activePinNew, onModeChange, Mode, setMode } from "../appState.js";
+import { deletePin } from "./pins.js";
 
 let limits = null;
 let zoomCursorTimer = null;
 let previousZoom = null;
+
+let _svg     = null;
+let _panZoom = null;
 
 // ─── Cursor ───────────────────────────────────────────────────────────────────
 
@@ -52,48 +56,55 @@ function clampPan(_oldPan, newPan) {
 // ─── Pin scaling ──────────────────────────────────────────────────────────────
 
 export function updatePinScale(panZoom) {
-  const scale = 1 / Math.min(panZoom.getZoom(), MAX_ZOOM);
+  const zoom  = panZoom.getZoom();
+  const scale = 1 / Math.min(zoom, MAX_ZOOM);
   document.querySelectorAll(".pin-content").forEach(el =>
     el.setAttribute("transform", `scale(${scale})`)
   );
 }
 
-// ─── Fly-in animation ─────────────────────────────────────────────────────────
-// Owned here because it is purely a camera operation.
-// pinPlacement.js calls this after rendering the pin.
-//
-// panZoom.getZoom() is relative to the initial fit zoom, not absolute pixels.
-// The actual pixel scale is: getZoom() * initialFitZoom.
-// We read initialFitZoom from the viewport CTM so the pan formula uses
-// the real scale, matching the coordinate space of getSVGPoint().
-//
-// To place svgPoint at screen position (tx, ty) at targetZoom:
-//   targetPan = (tx, ty) - svgPoint * targetScale
-// where targetScale = PLACEMENT_ZOOM_LEVEL * initialFitZoom (pixels/SVGunit)
-//
-// The pin is placed at (width/4, height/2) — left-centre — to leave room
-// for the editing panel that will appear on the right.
+// ─── Shared easing ────────────────────────────────────────────────────────────
 
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-export function flyTo(svg, panZoom, svgPoint, onComplete) {
+// ─── Core animation primitive ─────────────────────────────────────────────────
+
+function animateCamera(panZoom, targetZoom, targetPan, duration, onComplete) {
   const startZoom = panZoom.getZoom();
   const startPan  = panZoom.getPan();
+  let startTime   = null;
 
-  const viewport        = svg.querySelector(".svg-pan-zoom_viewport");
-  const initialFitZoom  = viewport.getScreenCTM().a / panZoom.getZoom();
-  const targetScale     = PLACEMENT_ZOOM_LEVEL * initialFitZoom;
+  function tick(now) {
+    if (!startTime) startTime = now;
+    const t     = Math.min((now - startTime) / duration, 1);
+    const eased = easeInOutCubic(t);
 
-  // Place pin at left-centre: x = width/4, y = height/2
+    panZoom.zoom(startZoom + (targetZoom - startZoom) * eased);
+    panZoom.pan({
+      x: startPan.x + (targetPan.x - startPan.x) * eased,
+      y: startPan.y + (targetPan.y - startPan.y) * eased,
+    });
+
+    if (t < 1) { requestAnimationFrame(tick); return; }
+    onComplete();
+  }
+
+  requestAnimationFrame(tick);
+}
+
+// ─── Fly-in ───────────────────────────────────────────────────────────────────
+
+export function flyTo(svg, panZoom, svgPoint, onComplete) {
+  const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
+  const initialFitZoom = viewport.getScreenCTM().a / panZoom.getZoom();
+  const targetScale    = PLACEMENT_ZOOM_LEVEL * initialFitZoom;
+
   const targetPan = {
-    x: svg.clientWidth * PIN_FOCUS_X - svgPoint.x * targetScale,
-    y: svg.clientHeight / 2 - svgPoint.y * targetScale,
+    x: (svg.clientWidth * PIN_FOCUS_X) - svgPoint.x * targetScale,
+    y:  svg.clientHeight / 2           - svgPoint.y * targetScale,
   };
-
-  const duration = 600;
-  let startTime  = null;
 
   setMode(Mode.FLYING);
   panZoom.disablePan();
@@ -101,38 +112,77 @@ export function flyTo(svg, panZoom, svgPoint, onComplete) {
   panZoom.disableMouseWheelZoom();
   panZoom.setMaxZoom(Infinity);
 
-  function tick(now) {
-    if (!startTime) startTime = now;
-    const t     = Math.min((now - startTime) / duration, 1);
-    const eased = easeInOutCubic(t);
-
-    // zoom() first, then pan() — zoom() adjusts pan to keep screen centre
-    // fixed, pan() immediately overwrites with our target position.
-    panZoom.zoom(startZoom + (PLACEMENT_ZOOM_LEVEL - startZoom) * eased);
-    panZoom.pan({
-      x: startPan.x + (targetPan.x - startPan.x) * eased,
-      y: startPan.y + (targetPan.y - startPan.y) * eased,
-    });
-
-    if (t < 1) { requestAnimationFrame(tick); return; }
-
+  animateCamera(panZoom, PLACEMENT_ZOOM_LEVEL, targetPan, 600, () => {
     panZoom.enablePan();
     panZoom.enableZoom();
-    // Mousewheel stays disabled — onModeChange re-enables it on browse/placing.
     panZoom.setMaxZoom(MAX_ZOOM);
     updatePinScale(panZoom);
     onComplete();
-  }
+  });
+}
 
-  requestAnimationFrame(tick);
+// ─── Fly-out ──────────────────────────────────────────────────────────────────
+
+export function flyOut(svgPoint) {
+  const svg     = _svg;
+  const panZoom = _panZoom;
+  if (!svg || !panZoom) return;
+
+  const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
+  const initialFitZoom = viewport.getScreenCTM().a / panZoom.getZoom();
+  const targetScale    = MAX_ZOOM * initialFitZoom;
+
+  const targetPan = {
+    x: svg.clientWidth  / 2 - svgPoint.x * targetScale,
+    y: svg.clientHeight / 2 - svgPoint.y * targetScale,
+  };
+
+  setMode(Mode.FLYING);
+  panZoom.disablePan();
+  panZoom.disableZoom();
+  panZoom.disableMouseWheelZoom();
+  panZoom.setMaxZoom(Infinity);
+
+  animateCamera(panZoom, MAX_ZOOM, targetPan, 500, () => {
+    panZoom.enablePan();
+    panZoom.enableZoom();
+    panZoom.enableMouseWheelZoom();
+    panZoom.setMaxZoom(MAX_ZOOM);
+    computeLimits(panZoom);
+    updatePinScale(panZoom);
+    setMode(Mode.BROWSE);
+  });
+}
+
+// ─── Close editing ────────────────────────────────────────────────────────────
+
+export function closeEditing(keep = false) {
+  if (getMode() !== Mode.EDITING) return;
+  const pin = getActivePin();
+  if (!keep && activePinNew() && pin) deletePin(pin.id);
+  if (pin) {
+    flyOut({ x: pin.x, y: pin.y });
+  } else {
+    setMode(Mode.BROWSE);
+  }
 }
 
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 export function setupPanZoom(svg) {
-  // Trackpad pinch-to-zoom fires as a wheel event with ctrlKey=true in most
-  // browsers, bypassing svgPanZoom's disableMouseWheelZoom(). Block it at the
-  // DOM level when interaction is not allowed.
+  _svg = svg;
+
+  const clickOutside = document.createElement("div");
+  clickOutside.id = "click-outside-overlay";
+  clickOutside.style.cssText = `
+    position: fixed; inset: 0;
+    z-index: 5;
+    display: none;
+    cursor: default;
+  `;
+  document.body.appendChild(clickOutside);
+  clickOutside.addEventListener("click", () => closeEditing());
+
   svg.addEventListener("wheel", e => {
     if (!canInteract()) e.preventDefault();
   }, { passive: false });
@@ -145,6 +195,7 @@ export function setupPanZoom(svg) {
     else setCursor(null);
     if (mode === Mode.BROWSE || mode === Mode.PLACING) panZoom.enableMouseWheelZoom();
     if (mode === Mode.EDITING) panZoom.disableMouseWheelZoom();
+    clickOutside.style.display = mode === Mode.EDITING ? "block" : "none";
   });
 
   const panZoom = svgPanZoom(svg, {
@@ -157,14 +208,8 @@ export function setupPanZoom(svg) {
     center: true,
 
     beforePan(oldPan, newPan) {
-      // Zoom-induced beforePan: svgPanZoom fires this on every wheel zoom to
-      // adjust for cursor-relative zoom. No pan delta — pass through unchanged.
       if (oldPan.x === newPan.x && oldPan.y === newPan.y) return newPan;
-
-      // Animation-driven pan: programmatic pan() also goes through beforePan.
-      // Let it through — disablePan() only blocks user drag events.
       if (isFlying()) return newPan;
-
       if (!canInteract()) return oldPan;
       return clampPan(oldPan, newPan);
     },
@@ -176,6 +221,8 @@ export function setupPanZoom(svg) {
       svg.classList.toggle("show-labels", panZoom.getZoom() >= LABEL_ZOOM_THRESHOLD);
     },
   });
+
+  _panZoom = panZoom;
 
   requestAnimationFrame(() => {
     panZoom.resize();
