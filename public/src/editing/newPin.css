@@ -1,29 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
 
-/* ── Panel ────────────────────────────────────────────────────────────────── */
+/* ── Panel container ──────────────────────────────────────────────────────── */
 
 #new-pin-panel {
   position: fixed;
-
-  /* Centred on the right half of the screen */
   right: calc(25% - 240px);
   top: 50%;
   transform: translateY(-50%);
-
   width: 480px;
   max-height: 80vh;
   overflow-y: auto;
-
   background: #ffffff;
   border-radius: 16px;
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.10),
     0 1px 4px  rgba(0, 0, 0, 0.06);
   border-left: 3px solid #b8ddd0;
-
   opacity: 0;
   pointer-events: none;
-  /* No delay — fades in at the same time as the map dim (both 600ms) */
   transition: opacity 600ms ease;
   z-index: 10;
 }
@@ -33,15 +27,120 @@
   pointer-events: all;
 }
 
-.panel-inner {
-  position: relative;
-  padding: 40px 40px 36px;
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.panel-header {
   display: flex;
-  flex-direction: column;
-  gap: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0 24px;
 }
 
-/* ── Title ────────────────────────────────────────────────────────────────── */
+.panel-header-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #aaa;
+}
+
+.panel-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Close and delete share the same pill button style */
+.panel-close,
+.panel-delete {
+  background: #f5f5f5;
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13px;
+  color: #888;
+  padding: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.panel-close:hover {
+  background: #e8e8e8;
+  color: #333;
+}
+
+/* Delete — red tint, only shown for existing pins */
+.panel-delete {
+  color: #e05252;
+  background: #fdf0f0;
+  display: none;
+  position: relative;
+  width: auto;
+  padding: 0 8px;
+  gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.panel-delete img {
+  display: block;
+  filter: invert(40%) sepia(60%) saturate(600%) hue-rotate(330deg);
+  transition: filter 150ms ease;
+  flex-shrink: 0;
+}
+
+.panel-delete-label {
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.panel-delete-cancel {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid #f5c0c0;
+  color: #aaa;
+  font-size: 11px;
+}
+
+.panel-delete:hover {
+  background: #e05252;
+  color: #fff;
+}
+
+.panel-delete:hover img {
+  filter: brightness(0) invert(1);
+}
+
+.panel-delete--confirm {
+  background: #e05252;
+  color: #fff;
+  width: auto;
+}
+
+.panel-delete--confirm img {
+  filter: brightness(0) invert(1);
+}
+
+.panel--existing .panel-delete { display: flex; }
+.panel--new      .panel-delete { display: none;  }
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+
+.panel-body {
+  padding: 20px 40px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Title field ──────────────────────────────────────────────────────────── */
 
 .panel-title {
   font-family: 'DM Serif Display', serif;
@@ -87,55 +186,54 @@
   outline: none;
   resize: none;
   width: 100%;
-  min-height: 100px;
+  min-height: 80px;
   padding: 0;
   border-bottom: 1.5px solid transparent;
   transition: border-color 200ms ease;
   caret-color: #4a9d87;
 }
 
-.panel-description::placeholder {
-  color: #d0d0d0;
-}
+.panel-description::placeholder { color: #d0d0d0; }
+.panel-description:focus { border-bottom-color: #b8ddd0; }
 
-.panel-description:focus {
-  border-bottom-color: #b8ddd0;
-}
+/* ── Photos section ───────────────────────────────────────────────────────── */
 
-/* ── Save button ──────────────────────────────────────────────────────────── */
-
-.panel-save {
-  margin-top: 32px;
-  width: 100%;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: #ffffff;
-  background: #4a9d87;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 0;
+.panel-photos {
+  position: relative;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: background 180ms ease, transform 100ms ease;
 }
 
-.panel-save:hover  { background: #3d8a76; }
-.panel-save:active { transform: scale(0.98); }
+.panel-photos-border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
 
-/* ── Actions row ──────────────────────────────────────────────────────────── */
+.panel-photos-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #8ab4cc;
+}
+
+/* ── Actions ──────────────────────────────────────────────────────────────── */
 
 .panel-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 32px;
-  align-items: stretch;
+  margin-top: 24px;
 }
 
-/* ── Save / Update button ─────────────────────────────────────────────────── */
-
 .panel-save {
-  flex: 1;
+  width: 100%;
   font-family: 'DM Sans', sans-serif;
   font-size: 13px;
   font-weight: 500;
@@ -154,74 +252,6 @@
   color: #4a9d87;
 }
 
-/* ── Delete button ────────────────────────────────────────────────────────── */
-
-.panel-delete {
-  display: none;
-  width: 44px;
-  flex-shrink: 0;
-  background: #e05252;
-  border: 1.5px solid #e05252;
-  border-radius: 8px;
-  cursor: pointer;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: background 180ms ease;
-}
-
-.panel--existing .panel-delete { display: flex; }
-.panel--new      .panel-delete { display: none;  }
-
-.panel-delete img {
-  display: block;
-  width: 16px;
-  height: 16px;
-  filter: brightness(0) invert(1);
-  transition: filter 180ms ease;
-}
-
-.panel-delete:hover {
-  background: #ffffff;
-  border-color: #e05252;
-}
-
-.panel-delete:hover img {
-  filter: invert(27%) sepia(80%) saturate(800%) hue-rotate(330deg);
-}
-
-.panel--existing .panel-delete { display: flex; }
-.panel--new      .panel-delete { display: none;  }
-
-/* ── Pin interactive cursor ───────────────────────────────────────────────── */
-
-.pin-interactive {
-  cursor: pointer;
-}
-
-
-/* ── Close button ─────────────────────────────────────────────────────────── */
-
-.panel-close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background: none;
-  border: none;
-  font-size: 16px;
-  color: #bbb;
-  cursor: pointer;
-  padding: 4px 6px;
-  line-height: 1;
-  border-radius: 4px;
-  transition: color 150ms ease, background 150ms ease;
-}
-
-.panel-close:hover {
-  color: #555;
-  background: #f5f5f5;
-}
-
 /* ── Pin type arrows ──────────────────────────────────────────────────────── */
 
 .pin-type-arrow {
@@ -238,7 +268,7 @@
   transition: opacity 150ms ease, transform 150ms ease;
 }
 
-.pin-type-arrow--up   { top: calc(50% - 135px); }
+.pin-type-arrow--up   { top: calc(50% - 110px); }
 .pin-type-arrow--down { top: calc(50% - 14px);  }
 
 .pin-type-arrow:hover {
@@ -252,13 +282,8 @@
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.35));
 }
 
-.panel-type {
-  display: block;
-  margin-top: 6px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #aaa;
+/* ── Pin interactive cursor ───────────────────────────────────────────────── */
+
+.pin-interactive {
+  cursor: pointer;
 }

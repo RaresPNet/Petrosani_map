@@ -28,6 +28,11 @@ export async function initViewPinPanel() {
     document.dispatchEvent(new CustomEvent("selection:edit"))
   );
 
+  // Cross-fade: fade out when edit transition starts (before mode changes)
+  document.addEventListener("editing:transition-start", () => {
+    panel.classList.remove("visible");
+  });
+
   // Inject SVG dashed border onto photo placeholder
   const photosEl  = panel.querySelector(".view-panel-photos");
   const svgNS     = "http://www.w3.org/2000/svg";

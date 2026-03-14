@@ -3,7 +3,7 @@ import { initSVGCoords } from "./map/svgCoords.js";
 import { setupPanZoom, flyToSelection, closeSelection } from "./map/camera.js";
 import { initPinPlacement } from "./map/pinPlacement.js";
 import { initPinArrows } from "./map/pinArrows.js";
-import { initNewPinPanel } from "./editing/newPin.js";
+import { initNewPinPanel, openPinForEdit } from "./editing/newPin.js";
 import { initViewPinPanel } from "./selection/viewPin.js";
 import { setMode, setSelectedPin, getSelectedPin, Mode } from "./appState.js";
 
@@ -24,7 +24,7 @@ fetch("map.svg")
 
     await Promise.all([
       loadPins(),
-      initNewPinPanel(),
+      initNewPinPanel(svg, panZoom),
       initViewPinPanel(),
     ]);
 
@@ -44,7 +44,9 @@ fetch("map.svg")
 
     document.addEventListener("selection:close", () => closeSelection());
     document.addEventListener("selection:edit",  () => {
-      // TODO: transition to editing mode
-      console.log("[selection] edit:", getSelectedPin()?.id);
+      const pin = getSelectedPin();
+      if (!pin) return;
+      restoreSelectedPinType();
+      openPinForEdit(pin, svg, panZoom);
     });
   });
