@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-qp2Lva/checked-fetch.js
+// ../.wrangler/tmp/bundle-KZwJP8/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -58,8 +58,37 @@ async function onRequestDelete({ params, env }) {
 }
 __name(onRequestDelete, "onRequestDelete");
 
+// api/images.js
+async function onRequestPost({ request, env }) {
+  const form = await request.formData();
+  const pinId = form.get("pin_id");
+  const file = form.get("file");
+  if (!pinId || !file) {
+    return Response.json({ error: "pin_id and file are required" }, { status: 400 });
+  }
+  const id = crypto.randomUUID().replace(/-/g, "");
+  const buffer = await file.arrayBuffer();
+  const mime = file.type || "image/jpeg";
+  await env.DB.prepare(
+    "INSERT INTO images (id, pin_id, mime, data) VALUES (?, ?, ?, ?)"
+  ).bind(id, pinId, mime, buffer).run();
+  return Response.json({ id }, { status: 201 });
+}
+__name(onRequestPost, "onRequestPost");
+async function onRequestGet({ request, env }) {
+  const pinId = new URL(request.url).searchParams.get("pin_id");
+  if (!pinId) {
+    return Response.json({ error: "pin_id is required" }, { status: 400 });
+  }
+  const { results } = await env.DB.prepare(
+    "SELECT id, mime FROM images WHERE pin_id = ? ORDER BY rowid"
+  ).bind(pinId).all();
+  return Response.json(results);
+}
+__name(onRequestGet, "onRequestGet");
+
 // api/pins.js
-async function onRequestGet({ env }) {
+async function onRequestGet2({ env }) {
   try {
     const { results } = await env.DB.prepare(
       "SELECT id, name, description, type, x, y FROM pins"
@@ -69,8 +98,8 @@ async function onRequestGet({ env }) {
     return Response.json({ error: "Failed to fetch pins" }, { status: 500 });
   }
 }
-__name(onRequestGet, "onRequestGet");
-async function onRequestPost({ request, env }) {
+__name(onRequestGet2, "onRequestGet");
+async function onRequestPost2({ request, env }) {
   try {
     const { id, name, description, type, x, y } = await request.json();
     await env.DB.prepare(
@@ -81,7 +110,7 @@ async function onRequestPost({ request, env }) {
     return Response.json({ error: "Failed to create pin" }, { status: 500 });
   }
 }
-__name(onRequestPost, "onRequestPost");
+__name(onRequestPost2, "onRequestPost");
 
 // ../.wrangler/tmp/pages-9nD346/functionsRoutes-0.8515973139408368.mjs
 var routes = [
@@ -100,18 +129,32 @@ var routes = [
     modules: [onRequestPatch]
   },
   {
-    routePath: "/api/pins",
+    routePath: "/api/images",
     mountPath: "/api",
     method: "GET",
     middlewares: [],
     modules: [onRequestGet]
   },
   {
-    routePath: "/api/pins",
+    routePath: "/api/images",
     mountPath: "/api",
     method: "POST",
     middlewares: [],
     modules: [onRequestPost]
+  },
+  {
+    routePath: "/api/pins",
+    mountPath: "/api",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet2]
+  },
+  {
+    routePath: "/api/pins",
+    mountPath: "/api",
+    method: "POST",
+    middlewares: [],
+    modules: [onRequestPost2]
   }
 ];
 
@@ -602,7 +645,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-qp2Lva/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-KZwJP8/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -634,7 +677,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-qp2Lva/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-KZwJP8/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

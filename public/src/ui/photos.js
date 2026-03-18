@@ -1,3 +1,5 @@
+import { uploadImage } from "../map/api/client.js";
+
 const svgNS = "http://www.w3.org/2000/svg";
 
 function makeDashedBorder(className) {
@@ -22,11 +24,13 @@ function makeDashedBorder(className) {
 }
 
 // ─── Edit photos ───────────────────────────────────────────────────────────────
-// Returns { element, reset }.
-// reset() revokes all object URLs and clears the grid — call it when the panel closes.
+// Returns { element, reset, uploadAll }.
+// uploadAll(pinId) — uploads all pending files, returns when all settle.
+// reset()          — revokes object URLs and clears the grid (call on panel close).
 
 export function makeEditPhotos() {
-  const pending = []; // { objectUrl, card }[]
+  // { file, objectUrl, card, overlay }
+  const pending = [];
 
   // ── Root ──────────────────────────────────────────────────────────────────
 
@@ -119,13 +123,13 @@ export function makeEditPhotos() {
       if (!file.type.startsWith("image/")) return;
 
       const objectUrl = URL.createObjectURL(file);
-      const entry = { objectUrl, card: null };
+      const entry = { file, objectUrl, card: null, overlay: null };
 
       // Card
       const card = document.createElement("div");
       card.className = "photos-thumb";
 
-      // Image — semi-transparent until loaded
+      // Image — fades in once decoded
       const img = document.createElement("img");
       img.className = "photos-thumb-img";
       img.alt = file.name;
@@ -133,7 +137,7 @@ export function makeEditPhotos() {
       img.addEventListener("load",  () => img.classList.add("loaded"));
       img.addEventListener("error", () => card.classList.add("photos-thumb--error"));
 
-      // Pending overlay (shown while not yet "loaded")
+      // Overlay — spinner shown while image is loading, reused during upload
       const overlay = document.createElement("div");
       overlay.className = "photos-thumb-overlay";
       overlay.innerHTML = `
@@ -159,7 +163,8 @@ export function makeEditPhotos() {
       card.appendChild(img);
       card.appendChild(overlay);
       card.appendChild(removeBtn);
-      entry.card = card;
+      entry.card    = card;
+      entry.overlay = overlay;
       pending.push(entry);
 
       grid.insertBefore(card, addMoreBtn);
@@ -174,6 +179,37 @@ export function makeEditPhotos() {
 
   // ── Public API ────────────────────────────────────────────────────────────
 
+  // Upload all pending files for the given pin, one request each (parallel).
+  // Each card reflects its own upload state: uploading → done | error.
+  async function uploadAll(pinId) {
+    if (pending.length === 0) return;
+
+    await Promise.allSettled(
+      pending.map(async entry => {
+        const { file, card, overlay } = entry;
+
+        // Re-show overlay with spinner (uploading state)
+        card.classList.add("photos-thumb--uploading");
+
+        try {
+          await uploadImage(pinId, file);
+          card.classList.remove("photos-thumb--uploading");
+          card.classList.add("photos-thumb--done");
+          // Swap spinner for a checkmark
+          overlay.innerHTML = `
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                 stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>`;
+        } catch {
+          card.classList.remove("photos-thumb--uploading");
+          card.classList.add("photos-thumb--error");
+          overlay.innerHTML = `<span style="font-size:18px;color:#fff;">&#x2715;</span>`;
+        }
+      })
+    );
+  }
+
   function reset() {
     pending.forEach(e => URL.revokeObjectURL(e.objectUrl));
     pending.length = 0;
@@ -181,7 +217,7 @@ export function makeEditPhotos() {
     syncEmptyState();
   }
 
-  return { element: wrapper, reset };
+  return { element: wrapper, reset, uploadAll };
 }
 
 // ─── View photos (stub — will show gallery once upload is wired) ───────────────

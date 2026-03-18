@@ -89,7 +89,7 @@
   opacity: 1;
 }
 
-/* ── Loading overlay (shown while image not yet loaded) ───────────────────── */
+/* ── Overlay (loading → uploading → done/error) ───────────────────────────── */
 
 .photos-thumb-overlay {
   position: absolute;
@@ -98,12 +98,31 @@
   align-items: center;
   justify-content: center;
   background: rgba(0, 0, 0, 0.25);
-  transition: opacity 300ms ease;
+  transition: opacity 300ms ease, background 200ms ease;
+  pointer-events: none;
 }
 
+/* Fade out once image has loaded (normal state — no upload in progress) */
 .photos-thumb-img.loaded ~ .photos-thumb-overlay {
   opacity: 0;
-  pointer-events: none;
+}
+
+/* Re-show overlay while uploading */
+.photos-thumb--uploading .photos-thumb-overlay {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.40);
+}
+
+/* Keep overlay visible on done, but very subtle so the image shows through */
+.photos-thumb--done .photos-thumb-overlay {
+  opacity: 1;
+  background: rgba(40, 160, 100, 0.55);
+}
+
+/* Red tint on error */
+.photos-thumb--error .photos-thumb-overlay {
+  opacity: 1;
+  background: rgba(200, 40, 40, 0.65);
 }
 
 .photos-thumb-spinner {

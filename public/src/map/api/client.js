@@ -38,3 +38,22 @@ export async function deletePin(id) {
   const res = await fetch(`/api/pins/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete pin");
 }
+
+// ─── Images ───────────────────────────────────────────────────────────────────
+
+// Upload a single image file for a pin. Returns { id }.
+export async function uploadImage(pinId, file) {
+  const form = new FormData();
+  form.append("pin_id", pinId);
+  form.append("file",   file);
+  const res = await fetch("/api/images", { method: "POST", body: form });
+  if (!res.ok) throw new Error(`Failed to upload image: ${res.status}`);
+  return res.json();
+}
+
+// Fetch metadata (id, mime) for all images belonging to a pin.
+export async function fetchImageMeta(pinId) {
+  const res = await fetch(`/api/images?pin_id=${pinId}`);
+  if (!res.ok) throw new Error(`Failed to fetch image list: ${res.status}`);
+  return res.json();
+}

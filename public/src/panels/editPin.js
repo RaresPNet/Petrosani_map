@@ -47,7 +47,7 @@ export async function initEditPinPanel() {
   closeBtn    = panel.querySelector(".panel-close");
   deleteBtn   = panel.querySelector(".panel-delete");
 
-  const { element: photosEl, reset: resetPhotos } = makeEditPhotos();
+  const { element: photosEl, reset: resetPhotos, uploadAll } = makeEditPhotos();
   panel.querySelector(".panel-actions").before(photosEl);
 
   // Live-sync title → pin label on the map
@@ -72,6 +72,7 @@ export async function initEditPinPanel() {
       } else {
         await updatePin(pin.id, { name: pin.name, description: pin.description, type: pin.type });
       }
+      await uploadAll(pin.id);
     } catch (err) {
       console.error("[save] failed:", err);
       return;
