@@ -1,7 +1,7 @@
 import { onModeChange, getSelectedPin, Mode } from "../appState.js";
 import { getOriginalPinColor } from "../map/pins.js";
 import { Events } from "../constants.js";
-import { makeDashedBorder } from "../ui/dashedBorder.js";
+import { makeViewPhotos } from "../ui/photos.js";
 
 let panel    = null;
 let headerEl = null;
@@ -35,7 +35,7 @@ export async function initViewPinPanel() {
     panel.classList.remove("visible");
   });
 
-  panel.querySelector(".view-panel-photos").prepend(makeDashedBorder("view-panel-photos-border"));
+  panel.querySelector(".view-panel-body").appendChild(makeViewPhotos());
 
   onModeChange(mode => {
     if (mode === Mode.SELECTION) {

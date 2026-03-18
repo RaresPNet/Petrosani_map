@@ -3,7 +3,7 @@ import { updatePinLabel, deletePin, attachPinInteraction } from "../map/pins.js"
 import { closeEditing, flyTo } from "../map/camera.js";
 import { createPin, updatePin, deletePin as deletePinFromDB } from "../map/api/client.js";
 import { Events } from "../constants.js";
-import { makeDashedBorder } from "../ui/dashedBorder.js";
+import { makeEditPhotos } from "../ui/photos.js";
 
 let panel       = null;
 let headerTitle = null;
@@ -47,7 +47,8 @@ export async function initEditPinPanel() {
   closeBtn    = panel.querySelector(".panel-close");
   deleteBtn   = panel.querySelector(".panel-delete");
 
-  panel.querySelector(".panel-photos").prepend(makeDashedBorder("panel-photos-border"));
+  const { element: photosEl, reset: resetPhotos } = makeEditPhotos();
+  panel.querySelector(".panel-actions").before(photosEl);
 
   // Live-sync title → pin label on the map
   titleEl.addEventListener("input", () => {
@@ -143,6 +144,7 @@ export async function initEditPinPanel() {
     } else {
       panel.classList.remove("visible");
       setDeleteConfirmState(false);
+      resetPhotos();
     }
   });
 }
