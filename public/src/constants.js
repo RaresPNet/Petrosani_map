@@ -1,3 +1,10 @@
+// ─── Custom event names ───────────────────────────────────────────────────────
+export const Events = Object.freeze({
+  SELECTION_CLOSE:    "selection:close",
+  SELECTION_EDIT:     "selection:edit",
+  EDITING_TRANSITION: "editing:transition-start",
+});
+
 // ─── Zoom ─────────────────────────────────────────────────────────────────────
 // Maximum zoom during normal browsing (relative to initial fit).
 export const MAX_ZOOM = 3;

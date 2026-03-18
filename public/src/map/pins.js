@@ -42,7 +42,6 @@ export function setOnPinClick(fn) { onPinClick = fn; }
 export function initSVG(svg) {
   svgElement = svg;
   pinLayer   = svg.querySelector("#pin-layer");
-  console.log('[initSVG] pin-layer has', pinLayer.children.length, 'existing children');
 
   dimOverlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   dimOverlay.setAttribute("id",     "dim-overlay");
@@ -213,7 +212,5 @@ function makeLabel(pin) {
 
 export async function loadPins() {
   const pins = await fetchPins();
-  console.log('[loadPins] loaded', pins.length, 'pins from DB');
-  pins.forEach(pin => console.log(`  [pin] "${pin.name}" (${pin.type}) @ ${pin.x.toFixed(1)}, ${pin.y.toFixed(1)}`));
   pins.forEach(pin => renderPin(pin, false));
 }

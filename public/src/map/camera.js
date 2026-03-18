@@ -98,7 +98,10 @@ function animateCamera(panZoom, targetZoom, targetPan, duration, onComplete) {
 // targetZoom defaults to PLACEMENT_ZOOM_LEVEL.
 // Pass a custom value (e.g. current zoom) to fly without zooming.
 
-export function flyTo(svg, panZoom, svgPoint, onComplete, targetZoom = PLACEMENT_ZOOM_LEVEL) {
+export function flyTo(svgPoint, onComplete, targetZoom = PLACEMENT_ZOOM_LEVEL) {
+  const svg     = _svg;
+  const panZoom = _panZoom;
+
   const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
   const initialFitZoom = viewport.getScreenCTM().a / panZoom.getZoom();
   const targetScale    = targetZoom * initialFitZoom;
@@ -127,7 +130,10 @@ export function flyTo(svg, panZoom, svgPoint, onComplete, targetZoom = PLACEMENT
 // Same as flyTo but places pin on the RIGHT side (mirrored PIN_FOCUS_X),
 // preserves current zoom level, and re-enables pan/zoom after landing.
 
-export function flyToSelection(svg, panZoom, svgPoint, onComplete) {
+export function flyToSelection(svgPoint, onComplete) {
+  const svg     = _svg;
+  const panZoom = _panZoom;
+
   const currentZoom    = panZoom.getZoom();
   const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
   const initialFitZoom = viewport.getScreenCTM().a / currentZoom;

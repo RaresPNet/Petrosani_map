@@ -24,7 +24,7 @@ function createCoordLabel() {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-export function initPinPlacement(svg, panZoom) {
+export function initPinPlacement(svg) {
   const coordLabel = createCoordLabel();
 
   // 'p' only toggles placement from browse — ignored in flying/editing
@@ -55,7 +55,7 @@ export function initPinPlacement(svg, panZoom) {
 
     renderPin(pin, true);
     setActivePin(pin, true);                        // true = new pin
-    flyTo(svg, panZoom, svgPoint, () => setMode(Mode.EDITING));
+    flyTo(svgPoint, () => setMode(Mode.EDITING));
   });
 
   // Coord readout while hovering in placement mode
