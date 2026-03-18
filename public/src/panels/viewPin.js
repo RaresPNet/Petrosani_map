@@ -35,7 +35,8 @@ export async function initViewPinPanel() {
     panel.classList.remove("visible");
   });
 
-  panel.querySelector(".view-panel-body").appendChild(makeViewPhotos());
+  const { element: photosEl, load: loadPhotos } = makeViewPhotos();
+  panel.querySelector(".view-panel-body").appendChild(photosEl);
 
   onModeChange(mode => {
     if (mode === Mode.SELECTION) {
@@ -46,6 +47,7 @@ export async function initViewPinPanel() {
       descEl.style.display            = pin?.description ? "block" : "none";
       headerEl.style.backgroundColor = color;
       panel.classList.add("visible");
+      loadPhotos(pin.id).catch(console.error);
     } else {
       panel.classList.remove("visible");
     }

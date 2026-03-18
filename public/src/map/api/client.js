@@ -55,5 +55,12 @@ export async function uploadImage(pinId, file) {
 export async function fetchImageMeta(pinId) {
   const res = await fetch(`/api/images?pin_id=${pinId}`);
   if (!res.ok) throw new Error(`Failed to fetch image list: ${res.status}`);
-  return res.json();
+  const data = await res.json();
+  console.log(`[images] fetched ${data.length} image(s) for pin ${pinId}`);
+  return data;
+}
+
+export async function deleteImage(id) {
+  const res = await fetch(`/api/images/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`Failed to delete image: ${res.status}`);
 }

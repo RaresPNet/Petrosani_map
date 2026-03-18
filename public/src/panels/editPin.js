@@ -47,7 +47,7 @@ export async function initEditPinPanel() {
   closeBtn    = panel.querySelector(".panel-close");
   deleteBtn   = panel.querySelector(".panel-delete");
 
-  const { element: photosEl, reset: resetPhotos, uploadAll } = makeEditPhotos();
+  const { element: photosEl, reset: resetPhotos, uploadAll, load: loadPhotos } = makeEditPhotos();
   panel.querySelector(".panel-actions").before(photosEl);
 
   // Live-sync title → pin label on the map
@@ -125,6 +125,7 @@ export async function initEditPinPanel() {
     saveBtn.textContent = "Actualizează";
     setDeleteConfirmState(false);
     panel.classList.add("visible");
+    loadPhotos(pin.id).catch(console.error);
   });
 
   onModeChange(mode => {

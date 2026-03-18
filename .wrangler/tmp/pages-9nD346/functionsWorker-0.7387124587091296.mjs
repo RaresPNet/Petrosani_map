@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-KZwJP8/checked-fetch.js
+// ../.wrangler/tmp/bundle-PNADIi/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -27,6 +27,29 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
   }
 });
 
+// api/images/[id].js
+async function onRequestGet({ params, env }) {
+  const row = await env.DB.prepare(
+    "SELECT mime, data FROM images WHERE id = ?"
+  ).bind(params.id).first();
+  if (!row) return new Response("Not found", { status: 404 });
+  const binary = atob(row.data);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new Response(bytes, {
+    headers: {
+      "Content-Type": row.mime,
+      "Cache-Control": "public, max-age=31536000, immutable"
+    }
+  });
+}
+__name(onRequestGet, "onRequestGet");
+async function onRequestDelete({ params, env }) {
+  await env.DB.prepare("DELETE FROM images WHERE id = ?").bind(params.id).run();
+  return new Response(null, { status: 204 });
+}
+__name(onRequestDelete, "onRequestDelete");
+
 // api/pins/[id].js
 async function onRequestPatch({ params, request, env }) {
   try {
@@ -48,7 +71,7 @@ async function onRequestPatch({ params, request, env }) {
   }
 }
 __name(onRequestPatch, "onRequestPatch");
-async function onRequestDelete({ params, env }) {
+async function onRequestDelete2({ params, env }) {
   try {
     await env.DB.prepare("DELETE FROM pins WHERE id = ?").bind(params.id).run();
     return new Response(null, { status: 204 });
@@ -56,7 +79,7 @@ async function onRequestDelete({ params, env }) {
     return Response.json({ error: "Failed to delete pin" }, { status: 500 });
   }
 }
-__name(onRequestDelete, "onRequestDelete");
+__name(onRequestDelete2, "onRequestDelete");
 
 // api/images.js
 async function onRequestPost({ request, env }) {
@@ -67,15 +90,21 @@ async function onRequestPost({ request, env }) {
     return Response.json({ error: "pin_id and file are required" }, { status: 400 });
   }
   const id = crypto.randomUUID().replace(/-/g, "");
-  const buffer = await file.arrayBuffer();
   const mime = file.type || "image/jpeg";
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  }
+  const base64 = btoa(binary);
   await env.DB.prepare(
     "INSERT INTO images (id, pin_id, mime, data) VALUES (?, ?, ?, ?)"
-  ).bind(id, pinId, mime, buffer).run();
+  ).bind(id, pinId, mime, base64).run();
   return Response.json({ id }, { status: 201 });
 }
 __name(onRequestPost, "onRequestPost");
-async function onRequestGet({ request, env }) {
+async function onRequestGet2({ request, env }) {
   const pinId = new URL(request.url).searchParams.get("pin_id");
   if (!pinId) {
     return Response.json({ error: "pin_id is required" }, { status: 400 });
@@ -85,10 +114,10 @@ async function onRequestGet({ request, env }) {
   ).bind(pinId).all();
   return Response.json(results);
 }
-__name(onRequestGet, "onRequestGet");
+__name(onRequestGet2, "onRequestGet");
 
 // api/pins.js
-async function onRequestGet2({ env }) {
+async function onRequestGet3({ env }) {
   try {
     const { results } = await env.DB.prepare(
       "SELECT id, name, description, type, x, y FROM pins"
@@ -98,7 +127,7 @@ async function onRequestGet2({ env }) {
     return Response.json({ error: "Failed to fetch pins" }, { status: 500 });
   }
 }
-__name(onRequestGet2, "onRequestGet");
+__name(onRequestGet3, "onRequestGet");
 async function onRequestPost2({ request, env }) {
   try {
     const { id, name, description, type, x, y } = await request.json();
@@ -115,11 +144,25 @@ __name(onRequestPost2, "onRequestPost");
 // ../.wrangler/tmp/pages-9nD346/functionsRoutes-0.8515973139408368.mjs
 var routes = [
   {
+    routePath: "/api/images/:id",
+    mountPath: "/api/images",
+    method: "DELETE",
+    middlewares: [],
+    modules: [onRequestDelete]
+  },
+  {
+    routePath: "/api/images/:id",
+    mountPath: "/api/images",
+    method: "GET",
+    middlewares: [],
+    modules: [onRequestGet]
+  },
+  {
     routePath: "/api/pins/:id",
     mountPath: "/api/pins",
     method: "DELETE",
     middlewares: [],
-    modules: [onRequestDelete]
+    modules: [onRequestDelete2]
   },
   {
     routePath: "/api/pins/:id",
@@ -133,7 +176,7 @@ var routes = [
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet]
+    modules: [onRequestGet2]
   },
   {
     routePath: "/api/images",
@@ -147,7 +190,7 @@ var routes = [
     mountPath: "/api",
     method: "GET",
     middlewares: [],
-    modules: [onRequestGet2]
+    modules: [onRequestGet3]
   },
   {
     routePath: "/api/pins",
@@ -645,7 +688,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-KZwJP8/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-PNADIi/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -677,7 +720,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-KZwJP8/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-PNADIi/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -6,7 +6,11 @@ export async function onRequestGet({ params, env }) {
 
   if (!row) return new Response("Not found", { status: 404 });
 
-  return new Response(row.data, {
+  const binary = atob(row.data);
+  const bytes  = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+  return new Response(bytes, {
     headers: {
       "Content-Type":  row.mime,
       "Cache-Control": "public, max-age=31536000, immutable",

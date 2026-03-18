@@ -1,4 +1,4 @@
-import { uploadImage } from "../map/api/client.js";
+import { uploadImage, fetchImageMeta, deleteImage } from "../map/api/client.js";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -23,14 +23,41 @@ function makeDashedBorder(className) {
   return svg;
 }
 
+// Shared: build a thumbnail card from a remote image URL.
+// onRemove() is called when the X button is clicked.
+function makeThumbCard(src, onRemove) {
+  const card = document.createElement("div");
+  card.className = "photos-thumb";
+
+  const img = document.createElement("img");
+  img.className = "photos-thumb-img";
+  img.src = src;
+  img.alt = "";
+  img.addEventListener("load",  () => img.classList.add("loaded"));
+  img.addEventListener("error", () => card.classList.add("photos-thumb--error"));
+
+  const removeBtn = document.createElement("button");
+  removeBtn.type = "button";
+  removeBtn.className = "photos-thumb-remove";
+  removeBtn.setAttribute("aria-label", "Elimină fotografia");
+  removeBtn.innerHTML = "&#x2715;";
+  removeBtn.addEventListener("click", e => { e.stopPropagation(); onRemove(); });
+
+  card.appendChild(img);
+  card.appendChild(removeBtn);
+  return card;
+}
+
 // ─── Edit photos ───────────────────────────────────────────────────────────────
-// Returns { element, reset, uploadAll }.
-// uploadAll(pinId) — uploads all pending files, returns when all settle.
-// reset()          — revokes object URLs and clears the grid (call on panel close).
+// Returns { element, load, reset, uploadAll }.
+//
+// load(pinId)    — fetch existing DB images and show them (call on panel open).
+// uploadAll(id)  — upload all pending files then settle.
+// reset()        — clear everything; call on panel close.
 
 export function makeEditPhotos() {
-  // { file, objectUrl, card, overlay }
-  const pending = [];
+  const existing = []; // { id, card } — already in DB, X deletes immediately
+  const pending  = []; // { file, objectUrl, card, overlay } — uploaded on save
 
   // ── Root ──────────────────────────────────────────────────────────────────
 
@@ -38,13 +65,13 @@ export function makeEditPhotos() {
   wrapper.className = "photos-edit";
   wrapper.appendChild(makeDashedBorder("photos-edit-border"));
 
-  // ── Thumbnail grid (shown when has-photos) ────────────────────────────────
+  // ── Thumbnail grid ────────────────────────────────────────────────────────
 
   const grid = document.createElement("div");
   grid.className = "photos-grid";
   wrapper.appendChild(grid);
 
-  // "Add more" tile — always the last item in the grid
+  // "Add more" tile — always last in grid
   const addMoreBtn = document.createElement("button");
   addMoreBtn.type = "button";
   addMoreBtn.className = "photos-add-more";
@@ -57,7 +84,7 @@ export function makeEditPhotos() {
   addMoreBtn.addEventListener("click", e => { e.stopPropagation(); fileInput.click(); });
   grid.appendChild(addMoreBtn);
 
-  // ── Empty state (icon + label, shown when no photos) ──────────────────────
+  // ── Empty state ───────────────────────────────────────────────────────────
 
   const emptyState = document.createElement("div");
   emptyState.className = "photos-empty-state";
@@ -90,8 +117,7 @@ export function makeEditPhotos() {
   });
   wrapper.appendChild(fileInput);
 
-  // ── Click zone (not on X or add-more) opens picker ───────────────────────
-
+  // Click the empty area (not X or add-more) → open picker
   wrapper.addEventListener("click", e => {
     if (e.target.closest(".photos-thumb-remove")) return;
     if (e.target.closest(".photos-add-more"))    return;
@@ -112,12 +138,16 @@ export function makeEditPhotos() {
   wrapper.addEventListener("drop", e => {
     e.preventDefault();
     wrapper.classList.remove("drag-over");
-    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
-    addFiles(files);
+    addFiles(Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/")));
   });
 
-  // ── File handling ─────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
+  function syncEmptyState() {
+    wrapper.classList.toggle("has-photos", existing.length > 0 || pending.length > 0);
+  }
+
+  // Add newly chosen local files as pending thumbnails
   function addFiles(files) {
     files.forEach(file => {
       if (!file.type.startsWith("image/")) return;
@@ -125,11 +155,9 @@ export function makeEditPhotos() {
       const objectUrl = URL.createObjectURL(file);
       const entry = { file, objectUrl, card: null, overlay: null };
 
-      // Card
       const card = document.createElement("div");
       card.className = "photos-thumb";
 
-      // Image — fades in once decoded
       const img = document.createElement("img");
       img.className = "photos-thumb-img";
       img.alt = file.name;
@@ -137,7 +165,6 @@ export function makeEditPhotos() {
       img.addEventListener("load",  () => img.classList.add("loaded"));
       img.addEventListener("error", () => card.classList.add("photos-thumb--error"));
 
-      // Overlay — spinner shown while image is loading, reused during upload
       const overlay = document.createElement("div");
       overlay.className = "photos-thumb-overlay";
       overlay.innerHTML = `
@@ -146,7 +173,6 @@ export function makeEditPhotos() {
           <path d="M12 2 a10 10 0 0 1 10 10"/>
         </svg>`;
 
-      // Remove button
       const removeBtn = document.createElement("button");
       removeBtn.type = "button";
       removeBtn.className = "photos-thumb-remove";
@@ -173,29 +199,45 @@ export function makeEditPhotos() {
     syncEmptyState();
   }
 
-  function syncEmptyState() {
-    wrapper.classList.toggle("has-photos", pending.length > 0);
-  }
-
   // ── Public API ────────────────────────────────────────────────────────────
 
-  // Upload all pending files for the given pin, one request each (parallel).
-  // Each card reflects its own upload state: uploading → done | error.
+  // Fetch and display images already stored for this pin.
+  async function load(pinId) {
+    // Clear previous existing entries before re-populating
+    existing.forEach(e => e.card.remove());
+    existing.length = 0;
+
+    const meta = await fetchImageMeta(pinId); // [{ id, mime }]
+
+    meta.forEach(({ id }) => {
+      const card = makeThumbCard(`/api/images/${id}`, () => {
+        deleteImage(id).catch(err => console.error("[delete image]", err));
+        existing.splice(existing.findIndex(e => e.id === id), 1);
+        card.remove();
+        syncEmptyState();
+      });
+      existing.push({ id, card });
+      // Existing images go before pending ones (insert before first pending card or addMoreBtn)
+      const firstPending = pending[0]?.card ?? addMoreBtn;
+      grid.insertBefore(card, firstPending);
+    });
+
+    syncEmptyState();
+  }
+
+  // Upload all pending files in parallel with per-card state feedback.
   async function uploadAll(pinId) {
     if (pending.length === 0) return;
 
     await Promise.allSettled(
       pending.map(async entry => {
         const { file, card, overlay } = entry;
-
-        // Re-show overlay with spinner (uploading state)
         card.classList.add("photos-thumb--uploading");
 
         try {
           await uploadImage(pinId, file);
           card.classList.remove("photos-thumb--uploading");
           card.classList.add("photos-thumb--done");
-          // Swap spinner for a checkmark
           overlay.innerHTML = `
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
                  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -211,35 +253,66 @@ export function makeEditPhotos() {
   }
 
   function reset() {
+    existing.forEach(e => e.card.remove());
+    existing.length = 0;
     pending.forEach(e => URL.revokeObjectURL(e.objectUrl));
     pending.length = 0;
     grid.querySelectorAll(".photos-thumb").forEach(el => el.remove());
     syncEmptyState();
   }
 
-  return { element: wrapper, reset, uploadAll };
+  return { element: wrapper, load, reset, uploadAll };
 }
 
-// ─── View photos (stub — will show gallery once upload is wired) ───────────────
+// ─── View photos ───────────────────────────────────────────────────────────────
+// Returns { element, load(pinId) }.
+// load(pinId) — fetch and render images as a tight read-only grid.
 
 export function makeViewPhotos() {
   const wrapper = document.createElement("div");
   wrapper.className = "photos-view";
   wrapper.appendChild(makeDashedBorder("photos-view-border"));
 
-  const icon = document.createElement("img");
-  icon.className = "photos-view-icon";
-  icon.src = "./assets/icons/photos.ico";
-  icon.width = 32;
-  icon.height = 32;
-  icon.alt = "";
+  // Empty state
+  const emptyState = document.createElement("div");
+  emptyState.className = "photos-view-empty";
 
-  const label = document.createElement("span");
-  label.className = "photos-view-label";
-  label.textContent = "Fără fotografii";
+  const emptyIcon = document.createElement("img");
+  emptyIcon.className = "photos-view-icon";
+  emptyIcon.src = "./assets/icons/photos.ico";
+  emptyIcon.width = 32;
+  emptyIcon.height = 32;
+  emptyIcon.alt = "";
 
-  wrapper.appendChild(icon);
-  wrapper.appendChild(label);
+  const emptyLabel = document.createElement("span");
+  emptyLabel.className = "photos-view-label";
+  emptyLabel.textContent = "Fără fotografii";
 
-  return wrapper;
+  emptyState.appendChild(emptyIcon);
+  emptyState.appendChild(emptyLabel);
+  wrapper.appendChild(emptyState);
+
+  // Image grid
+  const grid = document.createElement("div");
+  grid.className = "photos-view-grid";
+  wrapper.appendChild(grid);
+
+  async function load(pinId) {
+    grid.innerHTML = "";
+    wrapper.classList.remove("has-photos");
+
+    const meta = await fetchImageMeta(pinId);
+
+    meta.forEach(({ id }) => {
+      const img = document.createElement("img");
+      img.className = "photos-view-img";
+      img.src = `/api/images/${id}`;
+      img.alt = "";
+      grid.appendChild(img);
+    });
+
+    wrapper.classList.toggle("has-photos", meta.length > 0);
+  }
+
+  return { element: wrapper, load };
 }
