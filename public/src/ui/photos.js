@@ -226,10 +226,11 @@ export function makeEditPhotos() {
   }
 
   // Upload all pending files in parallel with per-card state feedback.
+  // Throws if any upload fails so callers can keep the panel open on error.
   async function uploadAll(pinId) {
     if (pending.length === 0) return;
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       pending.map(async entry => {
         const { file, card, overlay } = entry;
         card.classList.add("photos-thumb--uploading");
@@ -243,13 +244,19 @@ export function makeEditPhotos() {
                  stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="20 6 9 17 4 12"/>
             </svg>`;
-        } catch {
+        } catch (err) {
           card.classList.remove("photos-thumb--uploading");
           card.classList.add("photos-thumb--error");
           overlay.innerHTML = `<span style="font-size:18px;color:#fff;">&#x2715;</span>`;
+          throw err;
         }
       })
     );
+
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length) {
+      throw new Error(`${failed.length} of ${results.length} image upload(s) failed`);
+    }
   }
 
   function reset() {

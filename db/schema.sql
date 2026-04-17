@@ -11,8 +11,10 @@ CREATE TABLE IF NOT EXISTS pins (
 );
 
 CREATE TABLE IF NOT EXISTS images (
-    id      TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
-    pin_id  TEXT NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
-    mime    TEXT NOT NULL,
-    data    TEXT NOT NULL
+    id          TEXT    NOT NULL,
+    pin_id      TEXT    NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
+    mime        TEXT    NOT NULL,
+    chunk_index INTEGER NOT NULL DEFAULT 0,
+    data        TEXT    NOT NULL,
+    PRIMARY KEY (id, chunk_index)
 );

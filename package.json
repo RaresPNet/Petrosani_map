@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "wrangler pages dev ./public",
     "deploy": "wrangler pages deploy ./public",
-    "db:reset:local": "wrangler d1 execute petrosani --local --file=./db/schema.sql && wrangler d1 execute petrosani --local --file=./db/seed.sql",
-    "db:reset:remote": "wrangler d1 execute petrosani --remote --file=./db/schema.sql && wrangler d1 execute petrosani --remote --file=./db/seed.sql"
+    "db:dump-images": "node scripts/dump-images.js",
+    "db:reset:local": "wrangler d1 execute petrosani --local --file=./db/schema.sql && wrangler d1 execute petrosani --local --file=./db/seed.sql && wrangler d1 execute petrosani --local --file=./db/seed-images.sql",
+    "db:reset:remote": "wrangler d1 execute petrosani --remote --file=./db/schema.sql && wrangler d1 execute petrosani --remote --file=./db/seed.sql && wrangler d1 execute petrosani --remote --file=./db/seed-images.sql"
   },
   "keywords": [],
   "author": "",
