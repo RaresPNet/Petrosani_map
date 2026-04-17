@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// ../.wrangler/tmp/bundle-PNADIi/checked-fetch.js
+// ../.wrangler/tmp/bundle-lS9LP1/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -29,16 +29,18 @@ globalThis.fetch = new Proxy(globalThis.fetch, {
 
 // api/images/[id].js
 async function onRequestGet({ params, env }) {
-  const row = await env.DB.prepare(
-    "SELECT mime, data FROM images WHERE id = ?"
-  ).bind(params.id).first();
-  if (!row) return new Response("Not found", { status: 404 });
-  const binary = atob(row.data);
+  const { results } = await env.DB.prepare(
+    "SELECT mime, data FROM images WHERE id = ? ORDER BY chunk_index"
+  ).bind(params.id).all();
+  if (!results.length) return new Response("Not found", { status: 404 });
+  const base64 = results.map((r) => r.data).join("");
+  const mime = results[0].mime;
+  const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return new Response(bytes, {
     headers: {
-      "Content-Type": row.mime,
+      "Content-Type": mime,
       "Cache-Control": "public, max-age=31536000, immutable"
     }
   });
@@ -82,6 +84,7 @@ async function onRequestDelete2({ params, env }) {
 __name(onRequestDelete2, "onRequestDelete");
 
 // api/images.js
+var CHUNK_SIZE = 6e4;
 async function onRequestPost({ request, env }) {
   const form = await request.formData();
   const pinId = form.get("pin_id");
@@ -98,9 +101,14 @@ async function onRequestPost({ request, env }) {
     binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
   }
   const base64 = btoa(binary);
-  await env.DB.prepare(
-    "INSERT INTO images (id, pin_id, mime, data) VALUES (?, ?, ?, ?)"
-  ).bind(id, pinId, mime, base64).run();
+  const stmt = env.DB.prepare(
+    "INSERT INTO images (id, pin_id, mime, chunk_index, data) VALUES (?, ?, ?, ?, ?)"
+  );
+  const inserts = [];
+  for (let i = 0; i * CHUNK_SIZE < base64.length; i++) {
+    inserts.push(stmt.bind(id, pinId, mime, i, base64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE)));
+  }
+  await env.DB.batch(inserts);
   return Response.json({ id }, { status: 201 });
 }
 __name(onRequestPost, "onRequestPost");
@@ -110,7 +118,7 @@ async function onRequestGet2({ request, env }) {
     return Response.json({ error: "pin_id is required" }, { status: 400 });
   }
   const { results } = await env.DB.prepare(
-    "SELECT id, mime FROM images WHERE pin_id = ? ORDER BY rowid"
+    "SELECT id, mime FROM images WHERE pin_id = ? AND chunk_index = 0 ORDER BY rowid"
   ).bind(pinId).all();
   return Response.json(results);
 }
@@ -688,7 +696,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-PNADIi/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-lS9LP1/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -720,7 +728,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-PNADIi/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-lS9LP1/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx wrangler *)",
+      "Bash(curl -s -o /dev/null -w \"GET /api/pins: %{http_code}\\\\n\" http://127.0.0.1:8788/api/pins)",
+      "Bash(curl -s -w \"\\\\nGET /api/images?pin_id=5b29d3f1bdaf39ad5e3879d225c2393a: %{http_code}\\\\n\" http://127.0.0.1:8788/api/images?pin_id=5b29d3f1bdaf39ad5e3879d225c2393a)",
+      "Bash(node -e \"const fs=require\\('fs'\\);const b=Buffer.from\\('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9/KKKKACiiigD/9k=','base64'\\);fs.writeFileSync\\('/tmp/test.jpg',b\\);console.log\\('wrote',b.length,'bytes'\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\);const os=require\\('os'\\);const path=require\\('path'\\);const p=path.join\\(os.tmpdir\\(\\),'test.jpg'\\);const b=Buffer.from\\('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD9/KKKKACiiigD/9k=','base64'\\);fs.writeFileSync\\(p,b\\);console.log\\(p,b.length\\)\")",
+      "Bash(curl -s -w '\\\\nPOST: %{http_code}\\\\n' -F pin_id=5b29d3f1bdaf39ad5e3879d225c2393a -F file=@C:/Users/Rares/AppData/Local/Temp/test.jpg http://127.0.0.1:8788/api/images)",
+      "Bash(curl -s 'http://127.0.0.1:8788/api/images?pin_id=5b29d3f1bdaf39ad5e3879d225c2393a')",
+      "Bash(curl -s -o /dev/null -w 'GET /api/images/f182ad9af5c44d0bb14def1627ee76dd: %{http_code} %{content_type} %{size_download}b\\\\n' http://127.0.0.1:8788/api/images/f182ad9af5c44d0bb14def1627ee76dd)",
+      "Bash(curl -s -X DELETE -w 'DELETE: %{http_code}\\\\n' http://127.0.0.1:8788/api/images/f182ad9af5c44d0bb14def1627ee76dd)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:8788/)",
+      "Bash(npm run *)"
+    ]
+  }
+}

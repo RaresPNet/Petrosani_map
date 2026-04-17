@@ -144,9 +144,10 @@ export function renderPin(pin, isNew = false) {
   const icon = svgEl("image");
   icon.setAttribute("href",   pin.icon);
   icon.setAttribute("width",  28);
-  icon.setAttribute("height", 28);
+  icon.setAttribute("height", 32);
   icon.setAttribute("x", -14);
-  icon.setAttribute("y", -28);
+  icon.setAttribute("y", -32);
+  icon.setAttribute("preserveAspectRatio", "xMidYMax meet");
 
   content.appendChild(icon);
   if (pin.name) content.appendChild(makeLabel(pin));
