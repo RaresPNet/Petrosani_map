@@ -1,4 +1,5 @@
 import { uploadImage, fetchImageMeta, deleteImage } from "../map/api/client.js";
+import { openGallery } from "./lightbox.js";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -309,12 +310,14 @@ export function makeViewPhotos() {
     wrapper.classList.remove("has-photos");
 
     const meta = await fetchImageMeta(pinId);
+    const urls = meta.map(({ id }) => `/api/images/${id}`);
 
-    meta.forEach(({ id }) => {
+    urls.forEach((src, i) => {
       const img = document.createElement("img");
       img.className = "photos-view-img";
-      img.src = `/api/images/${id}`;
+      img.src = src;
       img.alt = "";
+      img.addEventListener("click", () => openGallery(urls, i));
       grid.appendChild(img);
     });
 
