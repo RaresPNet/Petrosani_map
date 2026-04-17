@@ -239,7 +239,7 @@
   transition: filter 150ms ease, transform 150ms ease;
 }
 
-.pin-type-arrow--up   { top: calc(50% - 170px); }
+.pin-type-arrow--up   { top: calc(50% - 190px); }
 .pin-type-arrow--down { top: calc(50% - 4px);   }
 
 .pin-type-arrow:hover {
