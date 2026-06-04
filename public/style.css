@@ -40,8 +40,8 @@ body.pin-mode { cursor: crosshair; }
   display: block;
 }
 
-#layer7 { display: none; }
-.show-streets #layer7 { display: block; }
+#layer7 { opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+.show-streets #layer7 { opacity: 1; pointer-events: auto; }
 
 #pin-notification {
   position: fixed;
