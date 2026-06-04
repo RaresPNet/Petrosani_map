@@ -60,6 +60,16 @@ export async function fetchImageMeta(pinId) {
   return data;
 }
 
+export async function updateImageMeta(id, fields) {
+  const res = await fetch(`/api/images/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(fields),
+  });
+  if (!res.ok) throw new Error(`Failed to update image metadata: ${res.status}`);
+  return res.json();
+}
+
 export async function deleteImage(id) {
   const res = await fetch(`/api/images/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete image: ${res.status}`);

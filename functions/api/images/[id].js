@@ -21,6 +21,24 @@ export async function onRequestGet({ params, env }) {
   });
 }
 
+// PATCH /api/images/:id  — update description, author, year
+export async function onRequestPatch({ params, request, env }) {
+  const body   = await request.json();
+  const fields = {};
+  if ("description" in body) fields.description = body.description || null;
+  if ("author"      in body) fields.author      = body.author      || null;
+  if ("year"        in body) fields.year        = body.year ? parseInt(body.year, 10) : null;
+
+  if (!Object.keys(fields).length) {
+    return Response.json({ error: "No fields to update" }, { status: 400 });
+  }
+
+  const sets   = Object.keys(fields).map(k => `${k} = ?`).join(", ");
+  const values = [...Object.values(fields), params.id];
+  await env.DB.prepare(`UPDATE images SET ${sets} WHERE id = ?`).bind(...values).run();
+  return Response.json({ ok: true });
+}
+
 // DELETE /api/images/:id  — removes all chunks for this image
 export async function onRequestDelete({ params, env }) {
   await env.DB.prepare("DELETE FROM images WHERE id = ?").bind(params.id).run();

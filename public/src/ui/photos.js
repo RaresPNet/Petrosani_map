@@ -1,5 +1,5 @@
-import { uploadImage, fetchImageMeta, deleteImage } from "../map/api/client.js";
-import { openGallery } from "./lightbox.js";
+import { uploadImage, fetchImageMeta, deleteImage, updateImageMeta } from "../map/api/client.js";
+import { openGallery, openGalleryEdit } from "./lightbox.js";
 
 const svgNS = "http://www.w3.org/2000/svg";
 
@@ -204,21 +204,44 @@ export function makeEditPhotos() {
 
   // Fetch and display images already stored for this pin.
   async function load(pinId) {
-    // Clear previous existing entries before re-populating
     existing.forEach(e => e.card.remove());
     existing.length = 0;
 
-    const meta = await fetchImageMeta(pinId); // [{ id, mime }]
+    const meta = await fetchImageMeta(pinId);
 
-    meta.forEach(({ id }) => {
+    meta.forEach((m) => {
+      const { id } = m;
       const card = makeThumbCard(`/api/images/${id}`, () => {
         deleteImage(id).catch(err => console.error("[delete image]", err));
         existing.splice(existing.findIndex(e => e.id === id), 1);
         card.remove();
         syncEmptyState();
       });
-      existing.push({ id, card });
-      // Existing images go before pending ones (insert before first pending card or addMoreBtn)
+
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "photos-thumb-edit";
+      editBtn.setAttribute("aria-label", "Editează metadata fotografiei");
+      editBtn.innerHTML = `<img src="./assets/icons/edit.ico" width="40" height="40" alt="" draggable="false" style="filter:invert(1);opacity:0.82">`;
+      editBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        const idx    = existing.findIndex(en => en.id === id);
+        const images = existing.map(en => ({
+          id:          en.id,
+          url:         `/api/images/${en.id}`,
+          description: en.description,
+          author:      en.author,
+          year:        en.year,
+        }));
+        openGalleryEdit(images, idx, async (imgId, fields) => {
+          await updateImageMeta(imgId, fields).catch(err => console.error("[update meta]", err));
+          const entry = existing.find(en => en.id === imgId);
+          if (entry) Object.assign(entry, fields);
+        });
+      });
+      card.appendChild(editBtn);
+
+      existing.push({ id, card, description: m.description, author: m.author, year: m.year });
       const firstPending = pending[0]?.card ?? addMoreBtn;
       grid.insertBefore(card, firstPending);
     });
@@ -310,14 +333,20 @@ export function makeViewPhotos() {
     wrapper.classList.remove("has-photos");
 
     const meta = await fetchImageMeta(pinId);
-    const urls = meta.map(({ id }) => `/api/images/${id}`);
+    const images = meta.map(m => ({
+      id:          m.id,
+      url:         `/api/images/${m.id}`,
+      description: m.description || null,
+      author:      m.author      || null,
+      year:        m.year        || null,
+    }));
 
-    urls.forEach((src, i) => {
+    images.forEach(({ url }, i) => {
       const img = document.createElement("img");
       img.className = "photos-view-img";
-      img.src = src;
+      img.src = url;
       img.alt = "";
-      img.addEventListener("click", () => openGallery(urls, i));
+      img.addEventListener("click", () => openGallery(images, i));
       grid.appendChild(img);
     });
 

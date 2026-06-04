@@ -141,6 +141,7 @@
   position: absolute;
   top: 5px;
   right: 5px;
+  z-index: 1;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -164,6 +165,28 @@
 
 .photos-thumb-remove:hover {
   background: rgba(210, 45, 45, 0.88);
+}
+
+/* ── Edit (pen) button ────────────────────────────────────────────────────── */
+
+.photos-thumb-edit {
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  transition: opacity 150ms ease, background 150ms ease;
+}
+
+.photos-thumb:hover .photos-thumb-edit {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 /* ── "Add more" tile ──────────────────────────────────────────────────────── */

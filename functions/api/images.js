@@ -44,9 +44,9 @@ export async function onRequestGet({ request, env }) {
     return Response.json({ error: "pin_id is required" }, { status: 400 });
   }
 
-  // Only need one row per image (chunk_index = 0 holds the mime type)
+  // Only need one row per image (chunk_index = 0 holds the mime type and metadata)
   const { results } = await env.DB.prepare(
-    "SELECT id, mime FROM images WHERE pin_id = ? AND chunk_index = 0 ORDER BY rowid"
+    "SELECT id, mime, description, author, year FROM images WHERE pin_id = ? AND chunk_index = 0 ORDER BY rowid"
   ).bind(pinId).all();
 
   return Response.json(results);

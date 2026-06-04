@@ -2,49 +2,98 @@
 // with keyboard arrows, on-screen arrows, or by clicking the ×.
 // Clicking the dark backdrop also closes.
 
-let root       = null;
-let imgEl      = null;
-let prevBtn    = null;
-let nextBtn    = null;
-let closeBtn   = null;
-let counterEl  = null;
+let root        = null;
+let imgEl       = null;
+let prevBtn     = null;
+let nextBtn     = null;
+let closeBtn    = null;
+let counterEl   = null;
+let captionEl   = null;
+let creditEl    = null;
+let editPanelEl  = null;
+let editCreditEl = null;
+let editDescEl   = null;
+let editAuthorEl = null;
+let editYearEl   = null;
 
-let urls   = [];
-let index  = 0;
-let isOpen = false;
+let images       = [];
+let index        = 0;
+let isOpen       = false;
+let editMode     = false;
+let onSaveCallback = null;
+
+function saveCurrentField() {
+  if (!editMode) return;
+  const entry = images[index];
+  const description = editDescEl.value.trim() || null;
+  const author      = editAuthorEl.value.trim() || null;
+  const year        = editYearEl.value ? parseInt(editYearEl.value, 10) : null;
+
+  if (description === entry.description && author === entry.author && year === entry.year) return;
+  entry.description = description;
+  entry.author      = author;
+  entry.year        = year;
+  onSaveCallback?.(entry.id, { description, author, year });
+}
 
 function render() {
-  imgEl.src = urls[index];
-  imgEl.alt = "";
-  counterEl.textContent = urls.length > 1 ? `${index + 1} / ${urls.length}` : "";
-  const multi = urls.length > 1;
+  const { url, description, author, year } = images[index];
+  imgEl.src = url;
+  imgEl.alt = description || "";
+  counterEl.textContent = images.length > 1 ? `${index + 1} / ${images.length}` : "";
+  const multi = images.length > 1;
   prevBtn.style.display = multi ? "flex" : "none";
   nextBtn.style.display = multi ? "flex" : "none";
+
+  if (editMode) {
+    captionEl.style.display   = "none";
+    creditEl.style.display    = "none";
+    editPanelEl.style.display = "flex";
+    editDescEl.value    = description || "";
+    editAuthorEl.value  = author      || "";
+    editYearEl.value    = year        ?? "";
+    root.classList.add("lightbox--edit");
+  } else {
+    captionEl.textContent = description || "";
+    captionEl.style.display = description ? "block" : "none";
+    root.classList.toggle("has-caption", !!description);
+
+    const credit = [author, year].filter(Boolean).join(" · ");
+    creditEl.textContent = credit;
+    creditEl.style.display = credit ? "block" : "none";
+
+    editPanelEl.style.display = "none";
+    root.classList.remove("lightbox--edit");
+  }
 }
 
 function next() {
-  if (urls.length < 2) return;
-  index = (index + 1) % urls.length;
+  if (images.length < 2) return;
+  saveCurrentField();
+  index = (index + 1) % images.length;
   render();
 }
 
 function prev() {
-  if (urls.length < 2) return;
-  index = (index - 1 + urls.length) % urls.length;
+  if (images.length < 2) return;
+  saveCurrentField();
+  index = (index - 1 + images.length) % images.length;
   render();
 }
 
 function close() {
   if (!isOpen) return;
-  isOpen = false;
-  root.classList.remove("visible");
-  // Clear src after transition so we don't keep a big image in memory
+  saveCurrentField();
+  isOpen    = false;
+  editMode  = false;
+  onSaveCallback = null;
+  root.classList.remove("visible", "lightbox--edit", "has-caption");
   setTimeout(() => { if (!isOpen) imgEl.src = ""; }, 250);
 }
 
 function onKey(e) {
   if (!isOpen) return;
-  if (e.key === "Escape")     { close(); e.preventDefault(); }
+  if (e.key === "Escape")          { close(); e.preventDefault(); }
   else if (e.key === "ArrowRight") { next();  e.preventDefault(); }
   else if (e.key === "ArrowLeft")  { prev();  e.preventDefault(); }
 }
@@ -64,7 +113,6 @@ function ensureMounted() {
 
   const stage = document.createElement("div");
   stage.className = "lightbox-stage";
-  // Clicks on the stage itself (outside the image) should also close
   stage.addEventListener("click", e => { if (e.target === stage) close(); });
 
   imgEl = document.createElement("img");
@@ -107,6 +155,54 @@ function ensureMounted() {
   counterEl = document.createElement("div");
   counterEl.className = "lightbox-counter";
 
+  captionEl = document.createElement("div");
+  captionEl.className = "lightbox-caption";
+
+  creditEl = document.createElement("div");
+  creditEl.className = "lightbox-credit";
+
+  // ── Edit panel ──────────────────────────────────────────────────────────────
+
+  editPanelEl = document.createElement("div");
+  editPanelEl.className = "lightbox-edit-panel";
+  editPanelEl.addEventListener("click", e => e.stopPropagation());
+
+  editDescEl = document.createElement("textarea");
+  editDescEl.className    = "lightbox-edit-desc";
+  editDescEl.placeholder  = "Descriere...";
+  editDescEl.rows         = 3;
+  editDescEl.addEventListener("blur", saveCurrentField);
+
+  const metaRow = document.createElement("div");
+  metaRow.className = "lightbox-edit-meta";
+
+  const authorField = document.createElement("label");
+  authorField.className = "lightbox-edit-field";
+  authorField.textContent = "Autor";
+  editAuthorEl = document.createElement("input");
+  editAuthorEl.type        = "text";
+  editAuthorEl.className   = "lightbox-edit-input";
+  editAuthorEl.placeholder = "Autor...";
+  editAuthorEl.addEventListener("blur", saveCurrentField);
+  authorField.appendChild(editAuthorEl);
+
+  const yearField = document.createElement("label");
+  yearField.className = "lightbox-edit-field lightbox-edit-field--year";
+  yearField.textContent = "An";
+  editYearEl = document.createElement("input");
+  editYearEl.type        = "number";
+  editYearEl.className   = "lightbox-edit-input lightbox-edit-input--year";
+  editYearEl.placeholder = "1924";
+  editYearEl.min         = "1800";
+  editYearEl.max         = "2100";
+  editYearEl.addEventListener("blur", saveCurrentField);
+  yearField.appendChild(editYearEl);
+
+  metaRow.appendChild(authorField);
+  metaRow.appendChild(yearField);
+  editPanelEl.appendChild(editDescEl);
+  editPanelEl.appendChild(metaRow);
+
   stage.appendChild(imgEl);
   root.appendChild(backdrop);
   root.appendChild(stage);
@@ -114,20 +210,41 @@ function ensureMounted() {
   root.appendChild(nextBtn);
   root.appendChild(closeBtn);
   root.appendChild(counterEl);
+  root.appendChild(captionEl);
+  root.appendChild(creditEl);
+  root.appendChild(editPanelEl);
   document.body.appendChild(root);
 
   document.addEventListener("keydown", onKey);
 }
 
-// Open the gallery at `startIndex` with an ordered list of image URLs.
-export function openGallery(imageUrls, startIndex = 0) {
-  if (!imageUrls || imageUrls.length === 0) return;
+// Open gallery in view mode.
+// imageData: [{ id, url, description, author, year }]
+export function openGallery(imageData, startIndex = 0) {
+  if (!imageData?.length) return;
   ensureMounted();
-  urls  = imageUrls.slice();
-  index = Math.max(0, Math.min(startIndex, urls.length - 1));
-  isOpen = true;
+  images         = imageData.slice();
+  index          = Math.max(0, Math.min(startIndex, images.length - 1));
+  editMode       = false;
+  onSaveCallback = null;
+  isOpen         = true;
   render();
-  // Force reflow so the transition plays on first open
   void root.offsetWidth;
   root.classList.add("visible");
+}
+
+// Open gallery in edit mode. onSave(id, { description, author, year }) called on blur.
+export function openGalleryEdit(imageData, startIndex = 0, onSave) {
+  if (!imageData?.length) return;
+  ensureMounted();
+  images         = imageData.slice();
+  index          = Math.max(0, Math.min(startIndex, images.length - 1));
+  editMode       = true;
+  onSaveCallback = onSave;
+  isOpen         = true;
+  render();
+  void root.offsetWidth;
+  root.classList.add("visible");
+  // Focus description field
+  setTimeout(() => editDescEl.focus(), 50);
 }
