@@ -292,6 +292,12 @@ export function renderPin(pin, isNew = false) {
 export function attachPinInteraction(group, pin) {
   group.classList.add("pin-interactive");
 
+  // Bring to front on hover so overlapping labels don't get buried
+  group.addEventListener("mouseenter", () => {
+    if (getMode() === Mode.SELECTION) return;
+    pinLayer.appendChild(group);
+  });
+
   let dragStartX = 0, dragStartY = 0;
   group.addEventListener("mousedown", e => { dragStartX = e.clientX; dragStartY = e.clientY; });
   group.addEventListener("click", e => {
