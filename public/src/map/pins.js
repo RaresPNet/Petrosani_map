@@ -1,6 +1,6 @@
 import { ICONS } from "./icons.js";
 import { LABEL_STYLE } from "../constants.js";
-import { fetchPins } from "./api/client.js";
+import { fetchPins, updatePin } from "./api/client.js";
 import { onModeChange, getActivePin, getSelectedPin, setActivePin, setSelectedPin, Mode, getMode } from "../appState.js";
 
 // ─── Pin model ────────────────────────────────────────────────────────────────
@@ -34,10 +34,58 @@ let svgElement  = null;
 let pinLayer    = null;
 let dimOverlay  = null;
 let activeGroup = null;
+let editingPin  = null;
 
 // Set by initPinInteraction — called when an existing pin is clicked
 let onPinClick = null;
 export function setOnPinClick(fn) { onPinClick = fn; }
+
+export function screenToSVG(clientX, clientY) {
+  const pt = svgElement.createSVGPoint();
+  pt.x = clientX;
+  pt.y = clientY;
+  return pt.matrixTransform(pinLayer.getScreenCTM().inverse());
+}
+
+export function isPointerOnActivePin(clientX, clientY) {
+  if (!activeGroup) return false;
+  const rect = activeGroup.getBoundingClientRect();
+  return clientX >= rect.left && clientX <= rect.right
+      && clientY >= rect.top  && clientY <= rect.bottom;
+}
+
+export function startPinDrag(e) {
+  const pin   = editingPin;
+  const group = activeGroup;
+  if (!pin || !group || e.button !== 0) return;
+
+  const origin = screenToSVG(e.clientX, e.clientY);
+  let hasMoved = false;
+
+  const onMove = ev => {
+    const pos = screenToSVG(ev.clientX, ev.clientY);
+    if (!hasMoved) {
+      if (Math.hypot(pos.x - origin.x, pos.y - origin.y) < 5) return;
+      hasMoved = true;
+      document.body.classList.add("pin-dragging");
+    }
+    pin.x = pos.x;
+    pin.y = pos.y;
+    group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
+  };
+
+  const onUp = () => {
+    document.removeEventListener("mousemove", onMove);
+    document.removeEventListener("mouseup",   onUp);
+    if (!hasMoved) return;
+    document.body.classList.remove("pin-dragging");
+    updatePin(pin.id, { x: pin.x, y: pin.y })
+      .catch(err => console.error("[drag] failed to save position:", err));
+  };
+
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("mouseup",   onUp);
+}
 
 export function setLabelAbove(pin, animate = true) {
   const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
@@ -89,8 +137,6 @@ export function initSVG(svg) {
   dimOverlay.style.pointerEvents = "none";
   pinLayer.parentNode.insertBefore(dimOverlay, pinLayer);
 
-  let editingPin = null;
-
   onModeChange(mode => {
     if (mode === Mode.EDITING) {
       const pin   = getActivePin();
@@ -100,6 +146,7 @@ export function initSVG(svg) {
       if (activeGroup) activeGroup.classList.add("pin-active");
       if (pin) setLabelAbove(pin);
     } else {
+      document.body.classList.remove("pin-dragging");
       dimOverlay.style.opacity = "0";
       if (activeGroup) activeGroup.classList.remove("pin-active");
       if (editingPin) setLabelLeft(editingPin);

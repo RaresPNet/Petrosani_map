@@ -256,6 +256,13 @@
   animation: pin-arrow-pulse 180ms ease-out;
 }
 
+/* ── Drag fade ────────────────────────────────────────────────────────────── */
+
+body.pin-dragging #new-pin-panel.visible {
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* ── Active pin punch-through ─────────────────────────────────────────────── */
 
 .pin-active .pin-content image {

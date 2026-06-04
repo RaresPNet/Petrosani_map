@@ -2,7 +2,7 @@ import {
   MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
-import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel } from "./pins.js";
+import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, isPointerOnActivePin, startPinDrag } from "./pins.js";
 
 let limits = null;
 let zoomCursorTimer = null;
@@ -242,8 +242,16 @@ export function setupPanZoom(svg) {
   document.addEventListener("mousedown", e => { downX = e.clientX; downY = e.clientY; });
   const wasDrag = e => Math.sqrt((e.clientX-downX)**2 + (e.clientY-downY)**2) > 4;
 
+  clickOutside.addEventListener("mousedown", e => {
+    if (isPointerOnActivePin(e.clientX, e.clientY)) startPinDrag(e);
+  });
+
+  clickOutside.addEventListener("mousemove", e => {
+    clickOutside.style.cursor = isPointerOnActivePin(e.clientX, e.clientY) ? "grab" : "default";
+  });
+
   clickOutside.addEventListener("click", e => {
-    if (!wasDrag(e)) closeEditing();
+    if (!wasDrag(e) && !isPointerOnActivePin(e.clientX, e.clientY)) closeEditing();
   });
 
   // Selection: clicking the map (not a pin) dismisses if not a drag

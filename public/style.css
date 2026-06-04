@@ -88,3 +88,13 @@ body.pin-mode { cursor: crosshair; }
 .pin-label:hover {
   fill: #2e8cff;
 }
+
+body.pin-dragging,
+body.pin-dragging * {
+  cursor: grabbing !important;
+}
+
+body.pin-dragging .pin-label {
+  opacity: 0 !important;
+  transition: opacity 150ms ease !important;
+}
