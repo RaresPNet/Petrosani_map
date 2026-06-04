@@ -44,7 +44,7 @@ and an expected result. If anything behaves differently, the refactor broke it.
 
 | # | Action | Expected |
 |---|--------|----------|
-| 3.1 | Click a pin | Camera pans to place pin on left side; view panel opens on right |
+| 3.1 | Click a pin | Camera pans to place pin on right side; view panel opens on left |
 | 3.2 | Pin icon turns red/selected | Selected icon shown |
 | 3.3 | Click another pin while one is selected | Previous pin reverts icon; new pin selected |
 | 3.4 | Click map background | Selection cleared, view panel closes, camera flies out |
