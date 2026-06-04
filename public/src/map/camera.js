@@ -2,11 +2,13 @@ import {
   MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
-import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, isPointerOnActivePin, startPinDrag } from "./pins.js";
+import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
 
 let limits = null;
 let zoomCursorTimer = null;
 let previousZoom = null;
+let isRecentering   = false;
+let isEdgeScrolling = false;
 
 let _svg     = null;
 let _panZoom = null;
@@ -288,7 +290,7 @@ export function setupPanZoom(svg) {
 
     beforePan(oldPan, newPan) {
       if (oldPan.x === newPan.x && oldPan.y === newPan.y) return newPan;
-      if (isFlying()) return newPan;
+      if (isFlying() || isRecentering || isEdgeScrolling) return newPan;
       if (!canInteract()) return oldPan;
       return clampPan(oldPan, newPan);
     },
@@ -302,6 +304,53 @@ export function setupPanZoom(svg) {
   });
 
   _panZoom = panZoom;
+
+  setEdgeScroller((clientX, clientY) => {
+    const W  = window.innerWidth,  H  = window.innerHeight;
+    const ZX = W * 0.1,            ZY = H * 0.1;
+    const MAX_SPEED = 16;
+
+    // How deep into the nearest edge zone (0 = not in zone, 1 = at screen edge)
+    let depthX = 0, depthY = 0;
+    if      (clientX < ZX)     depthX = (ZX - clientX)      / ZX;
+    else if (clientX > W - ZX) depthX = (clientX - (W - ZX)) / ZX;
+    if      (clientY < ZY)     depthY = (ZY - clientY)      / ZY;
+    else if (clientY > H - ZY) depthY = (clientY - (H - ZY)) / ZY;
+
+    const depth = Math.max(depthX, depthY);
+    if (depth === 0) return false;
+
+    // Direction: radial from screen centre to cursor
+    const nx = clientX - W / 2;
+    const ny = clientY - H / 2;
+    const len = Math.sqrt(nx * nx + ny * ny) || 1;
+
+    const pan = panZoom.getPan();
+    isEdgeScrolling = true;
+    panZoom.pan({ x: pan.x - (nx / len) * depth * MAX_SPEED,
+                  y: pan.y - (ny / len) * depth * MAX_SPEED });
+    isEdgeScrolling = false;
+    return true;
+  });
+
+  setOnDragEnd(svgPoint => {
+    const viewport       = svg.querySelector(".svg-pan-zoom_viewport");
+    const currentZoom    = panZoom.getZoom();
+    const initialFitZoom = viewport.getScreenCTM().a / currentZoom;
+    const targetScale    = currentZoom * initialFitZoom;
+    const targetPan = {
+      x: (svg.clientWidth * PIN_FOCUS_X) - svgPoint.x * targetScale,
+      y:  svg.clientHeight / 2           - svgPoint.y * targetScale,
+    };
+    isRecentering = true;
+    panZoom.disablePan();
+    panZoom.setMaxZoom(Infinity);
+    animateCamera(panZoom, currentZoom, targetPan, 500, () => {
+      isRecentering = false;
+      panZoom.setMaxZoom(MAX_ZOOM);
+      panZoom.enablePan();
+    });
+  });
 
   requestAnimationFrame(() => {
     panZoom.resize();

@@ -40,6 +40,12 @@ let editingPin  = null;
 let onPinClick = null;
 export function setOnPinClick(fn) { onPinClick = fn; }
 
+let onDragEnd = null;
+export function setOnDragEnd(fn) { onDragEnd = fn; }
+
+let edgeScroller = null;
+export function setEdgeScroller(fn) { edgeScroller = fn; }
+
 export function screenToSVG(clientX, clientY) {
   const pt = svgElement.createSVGPoint();
   pt.x = clientX;
@@ -60,14 +66,34 @@ export function startPinDrag(e) {
   if (!pin || !group || e.button !== 0) return;
 
   const origin = screenToSVG(e.clientX, e.clientY);
-  let hasMoved = false;
+  let hasMoved   = false;
+  let lastMouseX = e.clientX;
+  let lastMouseY = e.clientY;
+  let rafId      = null;
+
+  const scrollLoop = () => {
+    if (edgeScroller) {
+      const panned = edgeScroller(lastMouseX, lastMouseY);
+      if (panned) {
+        // viewport shifted — recalculate pin SVG position under cursor
+        const pos = screenToSVG(lastMouseX, lastMouseY);
+        pin.x = pos.x;
+        pin.y = pos.y;
+        group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
+      }
+    }
+    rafId = requestAnimationFrame(scrollLoop);
+  };
 
   const onMove = ev => {
+    lastMouseX = ev.clientX;
+    lastMouseY = ev.clientY;
     const pos = screenToSVG(ev.clientX, ev.clientY);
     if (!hasMoved) {
       if (Math.hypot(pos.x - origin.x, pos.y - origin.y) < 5) return;
       hasMoved = true;
       document.body.classList.add("pin-dragging");
+      rafId = requestAnimationFrame(scrollLoop);
     }
     pin.x = pos.x;
     pin.y = pos.y;
@@ -77,8 +103,10 @@ export function startPinDrag(e) {
   const onUp = () => {
     document.removeEventListener("mousemove", onMove);
     document.removeEventListener("mouseup",   onUp);
+    if (rafId) cancelAnimationFrame(rafId);
     if (!hasMoved) return;
     document.body.classList.remove("pin-dragging");
+    if (onDragEnd) onDragEnd({ x: pin.x, y: pin.y });
     updatePin(pin.id, { x: pin.x, y: pin.y })
       .catch(err => console.error("[drag] failed to save position:", err));
   };
