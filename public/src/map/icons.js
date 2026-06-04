@@ -54,7 +54,7 @@ export const ICONS = Object.freeze({
   },
   mine: {
     icon: './assets/icons/mine.svg',
-    textColor: '#78909c'
+    textColor: '#1a1a1a'
   },
   selected: {
     icon: './assets/icons/selected.ico',

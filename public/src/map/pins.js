@@ -46,6 +46,10 @@ export function setOnDragEnd(fn) { onDragEnd = fn; }
 let edgeScroller = null;
 export function setEdgeScroller(fn) { edgeScroller = fn; }
 
+let _attachArrows = null;
+let _detachArrows = null;
+export function setArrowHandlers(attach, detach) { _attachArrows = attach; _detachArrows = detach; }
+
 export function screenToSVG(clientX, clientY) {
   const pt = svgElement.createSVGPoint();
   pt.x = clientX;
@@ -55,7 +59,9 @@ export function screenToSVG(clientX, clientY) {
 
 export function isPointerOnActivePin(clientX, clientY) {
   if (!activeGroup) return false;
-  const rect = activeGroup.getBoundingClientRect();
+  // Use the icon element only — arrows extend the group bbox and must not trigger drag
+  const icon = activeGroup.querySelector(".pin-content image");
+  const rect = (icon || activeGroup).getBoundingClientRect();
   return clientX >= rect.left && clientX <= rect.right
       && clientY >= rect.top  && clientY <= rect.bottom;
 }
@@ -107,8 +113,6 @@ export function startPinDrag(e) {
     if (!hasMoved) return;
     document.body.classList.remove("pin-dragging");
     if (onDragEnd) onDragEnd({ x: pin.x, y: pin.y });
-    updatePin(pin.id, { x: pin.x, y: pin.y })
-      .catch(err => console.error("[drag] failed to save position:", err));
   };
 
   document.addEventListener("mousemove", onMove);
@@ -173,7 +177,9 @@ export function initSVG(svg) {
       dimOverlay.style.opacity = "1";
       if (activeGroup) activeGroup.classList.add("pin-active");
       if (pin) setLabelAbove(pin);
+      if (pin && activeGroup) _attachArrows?.(activeGroup, pin);
     } else {
+      _detachArrows?.(activeGroup);
       document.body.classList.remove("pin-dragging");
       dimOverlay.style.opacity = "0";
       if (activeGroup) activeGroup.classList.remove("pin-active");
@@ -228,6 +234,11 @@ export function getOriginalPinColor(pinId) {
 export function deletePin(id) {
   const group = pinLayer.querySelector(`[data-pin-id="${id}"]`);
   if (group) group.remove();
+}
+
+export function updatePinTransform(pin) {
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (group) group.setAttribute("transform", `translate(${pin.x}, ${pin.y})`);
 }
 
 export function updatePinVisual(pin) {

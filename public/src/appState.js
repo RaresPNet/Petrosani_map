@@ -45,7 +45,7 @@ export const setActivePin = (pin, isNew = false) => {
   activePin         = pin;
   activePinIsNew    = isNew;
   // Snapshot original values so edits can be reverted on discard
-  activePinSnapshot = isNew ? null : { name: pin.name, description: pin.description, type: pin.type };
+  activePinSnapshot = isNew ? null : { name: pin.name, description: pin.description, type: pin.type, x: pin.x, y: pin.y };
 };
 
 export function revertActivePin() {
@@ -53,6 +53,8 @@ export function revertActivePin() {
   activePin.name        = activePinSnapshot.name;
   activePin.description = activePinSnapshot.description;
   activePin.type        = activePinSnapshot.type;
+  activePin.x           = activePinSnapshot.x;
+  activePin.y           = activePinSnapshot.y;
 }
 
 // ─── Selected pin (being viewed) ──────────────────────────────────────────────

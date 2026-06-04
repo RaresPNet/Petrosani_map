@@ -71,7 +71,7 @@ export async function initEditPinPanel() {
         const group = document.querySelector(`[data-pin-id="${pin.id}"]`);
         if (group) attachPinInteraction(group, pin);
       } else {
-        await updatePin(pin.id, { name: pin.name, description: pin.description, type: pin.type });
+        await updatePin(pin.id, { name: pin.name, description: pin.description, type: pin.type, x: pin.x, y: pin.y });
       }
       await uploadAll(pin.id);
     } catch (err) {

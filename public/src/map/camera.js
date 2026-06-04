@@ -2,7 +2,8 @@ import {
   MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
-import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
+import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, updatePinTransform, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
+import { getArrowHit, triggerArrow } from "./pinArrows.js";
 
 let limits = null;
 let zoomCursorTimer = null;
@@ -213,9 +214,10 @@ export function closeEditing(keep = false) {
     if (activePinNew()) {
       deletePin(pin.id);
     } else {
-      revertActivePin();     // restore name, description, type in memory
-      updatePinVisual(pin);  // restore icon + label colour on map
-      updatePinLabel(pin);   // restore label text on map
+      revertActivePin();        // restore name, description, type, x, y in memory
+      updatePinTransform(pin);  // snap group back to original SVG position
+      updatePinVisual(pin);     // restore icon + label colour on map
+      updatePinLabel(pin);      // restore label text on map
     }
   }
   if (pin) {
@@ -245,15 +247,20 @@ export function setupPanZoom(svg) {
   const wasDrag = e => Math.sqrt((e.clientX-downX)**2 + (e.clientY-downY)**2) > 4;
 
   clickOutside.addEventListener("mousedown", e => {
+    if (getArrowHit(e.clientX, e.clientY)) return; // let click event handle it
     if (isPointerOnActivePin(e.clientX, e.clientY)) startPinDrag(e);
   });
 
-  clickOutside.addEventListener("mousemove", e => {
-    clickOutside.style.cursor = isPointerOnActivePin(e.clientX, e.clientY) ? "grab" : "default";
+  clickOutside.addEventListener("click", e => {
+    const arrow = getArrowHit(e.clientX, e.clientY);
+    if (arrow) { triggerArrow(arrow); return; }
+    if (!wasDrag(e) && !isPointerOnActivePin(e.clientX, e.clientY)) closeEditing();
   });
 
-  clickOutside.addEventListener("click", e => {
-    if (!wasDrag(e) && !isPointerOnActivePin(e.clientX, e.clientY)) closeEditing();
+  clickOutside.addEventListener("mousemove", e => {
+    const onArrow = !!getArrowHit(e.clientX, e.clientY);
+    const onPin   = !onArrow && isPointerOnActivePin(e.clientX, e.clientY);
+    clickOutside.style.cursor = onArrow ? "pointer" : onPin ? "grab" : "default";
   });
 
   // Selection: clicking the map (not a pin) dismisses if not a drag
