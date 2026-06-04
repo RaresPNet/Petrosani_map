@@ -103,7 +103,7 @@ body.pin-mode { cursor: crosshair; }
   transform: translateY(0);
 }
 
-.pin-label:hover {
+.pin-hovered:not(.pin-active) .pin-label {
   fill: var(--color-label-hover);
 }
 

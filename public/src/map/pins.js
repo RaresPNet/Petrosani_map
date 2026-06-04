@@ -154,7 +154,7 @@ export function initSVG(svg) {
   svgElement = svg;
   pinLayer   = svg.querySelector("#pin-layer");
 
-  dimOverlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+dimOverlay = document.createElementNS("http://www.w3.org/2000/svg", "rect");
   dimOverlay.setAttribute("id",     "dim-overlay");
   dimOverlay.setAttribute("x",      "-10000");
   dimOverlay.setAttribute("y",      "-10000");
@@ -289,11 +289,12 @@ export function renderPin(pin, isNew = false) {
 export function attachPinInteraction(group, pin) {
   group.classList.add("pin-interactive");
 
-  // Bring to front on hover so overlapping labels don't get buried
   group.addEventListener("mouseenter", () => {
+    group.classList.add("pin-hovered");
     if (getMode() === Mode.SELECTION) return;
     pinLayer.appendChild(group);
   });
+  group.addEventListener("mouseleave", () => group.classList.remove("pin-hovered"));
 
   let dragStartX = 0, dragStartY = 0;
   group.addEventListener("mousedown", e => { dragStartX = e.clientX; dragStartY = e.clientY; });
