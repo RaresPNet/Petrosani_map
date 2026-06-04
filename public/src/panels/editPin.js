@@ -1,5 +1,5 @@
 import { onModeChange, getActivePin, activePinNew, setActivePin, Mode, setMode } from "../appState.js";
-import { updatePinLabel, deletePin, attachPinInteraction } from "../map/pins.js";
+import { updatePinLabel, deletePin, attachPinInteraction, setLabelAbove } from "../map/pins.js";
 import { closeEditing, flyTo } from "../map/camera.js";
 import { createPin, updatePin, deletePin as deletePinFromDB } from "../map/api/client.js";
 import { Events } from "../constants.js";
@@ -56,6 +56,7 @@ export async function initEditPinPanel() {
     if (!pin) return;
     pin.name = titleEl.value;
     updatePinLabel(pin);
+    setLabelAbove(pin, false);
   });
 
   // Save / update

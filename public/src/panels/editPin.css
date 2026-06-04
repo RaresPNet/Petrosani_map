@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
 /* ── Panel container ──────────────────────────────────────────────────────── */
 
@@ -37,7 +37,7 @@
 }
 
 .panel-header-title {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 11px;
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -82,7 +82,7 @@
   width: auto;
   padding: 0 8px;
   gap: 5px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 11px;
   font-weight: 500;
 }
@@ -143,7 +143,7 @@
 /* ── Title field ──────────────────────────────────────────────────────────── */
 
 .panel-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 26px;
   color: #1a1a1a;
   background: transparent;
@@ -176,7 +176,7 @@
 /* ── Description ──────────────────────────────────────────────────────────── */
 
 .panel-description {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   font-weight: 300;
   line-height: 1.75;
@@ -204,7 +204,7 @@
 
 .panel-save {
   width: 100%;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -226,25 +226,34 @@
 
 .pin-type-arrow {
   position: fixed;
-  left: 31.25%;
-  transform: translateX(-50%);
+  top: calc(50% - 65px);
+  transform: translateY(-50%);
   background: none;
   border: none;
   padding: 10px;
   cursor: pointer;
   z-index: 20;
   display: none;
-  opacity: 1;
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
   transition: filter 150ms ease, transform 150ms ease;
 }
 
-.pin-type-arrow--up   { top: calc(50% - 190px); }
-.pin-type-arrow--down { top: calc(50% - 4px);   }
+.pin-type-arrow--prev { left: calc(31.25% - 98px); }
+.pin-type-arrow--next { left: calc(31.25% + 42px); }
 
 .pin-type-arrow:hover {
   filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.9));
-  transform: translateX(-50%) scale(1.15);
+  transform: translateY(-50%) scale(1.15);
+}
+
+@keyframes pin-arrow-pulse {
+  0%   { transform: translateY(-50%) scale(1);    }
+  35%  { transform: translateY(-50%) scale(1.15); }
+  100% { transform: translateY(-50%) scale(1);    }
+}
+
+.pin-type-arrow--pulsing {
+  animation: pin-arrow-pulse 180ms ease-out;
 }
 
 /* ── Active pin punch-through ─────────────────────────────────────────────── */

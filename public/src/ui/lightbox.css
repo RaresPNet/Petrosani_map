@@ -106,7 +106,7 @@
   bottom: 5vh;
   left: 20px;
   color: rgba(255, 255, 255, 0.55);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   letter-spacing: 0.06em;
   pointer-events: none;
@@ -122,7 +122,7 @@
   max-width: 60%;
   text-align: center;
   color: rgba(255, 255, 255, 0.85);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 15px;
   line-height: 1.6;
   pointer-events: none;
@@ -135,7 +135,7 @@
   bottom: 16px;
   right: 20px;
   color: rgba(255, 255, 255, 0.55);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 12px;
   font-style: italic;
   letter-spacing: 0.04em;
@@ -168,7 +168,7 @@
   border: 1.5px solid rgba(255, 255, 255, 0.45);
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 15px;
   line-height: 1.6;
   padding: 8px 12px;
@@ -190,7 +190,7 @@
   flex-direction: column;
   gap: 4px;
   color: rgba(255, 255, 255, 0.6);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -204,7 +204,7 @@
   border: 1.5px solid rgba(255, 255, 255, 0.45);
   border-radius: 6px;
   color: rgba(255, 255, 255, 0.9);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 13px;
   padding: 6px 10px;
   outline: none;

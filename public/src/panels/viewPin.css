@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
 /* ── View pin panel ───────────────────────────────────────────────────────── */
 
@@ -39,7 +39,7 @@
 }
 
 .view-panel-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 22px;
   color: #ffffff;
   margin: 0;
@@ -93,7 +93,7 @@
 }
 
 .view-panel-description {
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 14px;
   font-weight: 300;
   line-height: 1.75;

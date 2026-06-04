@@ -20,8 +20,8 @@ export const PIN_FOCUS_X = 5 / 16;
 export const LABEL_ZOOM_THRESHOLD = 1.5;
 export const LABEL_STYLE = {
   lineHeight:         18,
-  xOffset:           -22,
-  baseY:             -12,
+  xOffset:           -14,
+  baseY:             -10,
   maxWordsSingleLine:  3,
   maxWordsTwoLines:    4,
 };

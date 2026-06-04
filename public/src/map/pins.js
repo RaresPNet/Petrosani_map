@@ -39,6 +39,40 @@ let activeGroup = null;
 let onPinClick = null;
 export function setOnPinClick(fn) { onPinClick = fn; }
 
+export function setLabelAbove(pin, animate = true) {
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (!group) return;
+  const label = group.querySelector(".pin-label");
+  if (!label) return;
+  const apply = () => {
+    const tspans = label.querySelectorAll("tspan");
+    const baseY  = -37 - (tspans.length - 1) * LABEL_STYLE.lineHeight / 2;
+    label.setAttribute("y", baseY);
+    label.style.setProperty("text-anchor", "middle");
+    tspans.forEach(t => t.setAttribute("x", 0));
+  };
+  if (animate) {
+    label.style.setProperty("opacity", "0");
+    setTimeout(() => { apply(); label.style.removeProperty("opacity"); }, 150);
+  } else {
+    apply();
+  }
+}
+
+function setLabelLeft(pin) {
+  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
+  if (!group) return;
+  const label = group.querySelector(".pin-label");
+  if (!label) return;
+  label.style.setProperty("opacity", "0");
+  setTimeout(() => {
+    label.setAttribute("y", LABEL_STYLE.baseY);
+    label.style.removeProperty("text-anchor");
+    label.querySelectorAll("tspan").forEach(t => t.setAttribute("x", LABEL_STYLE.xOffset));
+    label.style.removeProperty("opacity");
+  }, 150);
+}
+
 export function initSVG(svg) {
   svgElement = svg;
   pinLayer   = svg.querySelector("#pin-layer");
@@ -55,17 +89,28 @@ export function initSVG(svg) {
   dimOverlay.style.pointerEvents = "none";
   pinLayer.parentNode.insertBefore(dimOverlay, pinLayer);
 
+  let editingPin = null;
+
   onModeChange(mode => {
     if (mode === Mode.EDITING) {
       const pin   = getActivePin();
+      editingPin  = pin;
       activeGroup = pin ? pinLayer.querySelector(`[data-pin-id="${pin.id}"]`) : null;
       dimOverlay.style.opacity = "1";
       if (activeGroup) activeGroup.classList.add("pin-active");
+      if (pin) setLabelAbove(pin);
     } else {
       dimOverlay.style.opacity = "0";
       if (activeGroup) activeGroup.classList.remove("pin-active");
+      if (editingPin) setLabelLeft(editingPin);
       activeGroup = null;
+      editingPin  = null;
     }
+  });
+
+  // Re-apply above position after type cycling recreates the label element
+  document.addEventListener("pin-type-changed", e => {
+    if (editingPin && e.detail.id === editingPin.id) setLabelAbove(editingPin, false);
   });
 }
 
@@ -143,10 +188,10 @@ export function renderPin(pin, isNew = false) {
 
   const icon = svgEl("image");
   icon.setAttribute("href",   pin.icon);
-  icon.setAttribute("width",  28);
-  icon.setAttribute("height", 32);
-  icon.setAttribute("x", -14);
-  icon.setAttribute("y", -32);
+  icon.setAttribute("width",  25);
+  icon.setAttribute("height", 29);
+  icon.setAttribute("x", -13);
+  icon.setAttribute("y", -29);
   icon.setAttribute("preserveAspectRatio", "xMidYMax meet");
 
   content.appendChild(icon);
