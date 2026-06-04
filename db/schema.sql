@@ -16,5 +16,8 @@ CREATE TABLE IF NOT EXISTS images (
     mime        TEXT    NOT NULL,
     chunk_index INTEGER NOT NULL DEFAULT 0,
     data        TEXT    NOT NULL,
+    description TEXT,
+    author      TEXT,
+    year        INTEGER,
     PRIMARY KEY (id, chunk_index)
 );
