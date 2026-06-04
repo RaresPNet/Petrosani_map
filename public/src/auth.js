@@ -1,6 +1,8 @@
 let _canEdit = false;
+let _token   = "";
 
-export function canEdit() { return _canEdit; }
+export function canEdit()      { return _canEdit; }
+export function authHeaders()  { return _token ? { "X-Edit-Token": _token } : {}; }
 
 export async function initAuth() {
   const token = new URLSearchParams(window.location.search).get("edit");
@@ -8,7 +10,7 @@ export async function initAuth() {
   try {
     const res  = await fetch(`/api/auth?token=${encodeURIComponent(token)}`);
     const data = await res.json();
-    _canEdit = data.ok === true;
+    if (data.ok === true) { _canEdit = true; _token = token; }
   } catch {
     _canEdit = false;
   }

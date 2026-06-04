@@ -119,18 +119,26 @@ export function startPinDrag(e) {
   document.addEventListener("mouseup",   onUp);
 }
 
-export function setLabelAbove(pin, animate = true) {
+function positionLabel(pin, position, animate = true) {
   const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
   if (!group) return;
   const label = group.querySelector(".pin-label");
   if (!label) return;
+
   const apply = () => {
-    const tspans = label.querySelectorAll("tspan");
-    const baseY  = -37 - (tspans.length - 1) * LABEL_STYLE.lineHeight / 2;
-    label.setAttribute("y", baseY);
-    label.style.setProperty("text-anchor", "middle");
-    tspans.forEach(t => t.setAttribute("x", 0));
+    if (position === "above") {
+      const tspans = label.querySelectorAll("tspan");
+      const baseY  = -37 - (tspans.length - 1) * LABEL_STYLE.lineHeight / 2;
+      label.setAttribute("y", baseY);
+      label.style.setProperty("text-anchor", "middle");
+      tspans.forEach(t => t.setAttribute("x", 0));
+    } else {
+      label.setAttribute("y", LABEL_STYLE.baseY);
+      label.style.removeProperty("text-anchor");
+      label.querySelectorAll("tspan").forEach(t => t.setAttribute("x", LABEL_STYLE.xOffset));
+    }
   };
+
   if (animate) {
     label.style.setProperty("opacity", "0");
     setTimeout(() => { apply(); label.style.removeProperty("opacity"); }, 150);
@@ -139,19 +147,8 @@ export function setLabelAbove(pin, animate = true) {
   }
 }
 
-function setLabelLeft(pin) {
-  const group = pinLayer.querySelector(`[data-pin-id="${pin.id}"]`);
-  if (!group) return;
-  const label = group.querySelector(".pin-label");
-  if (!label) return;
-  label.style.setProperty("opacity", "0");
-  setTimeout(() => {
-    label.setAttribute("y", LABEL_STYLE.baseY);
-    label.style.removeProperty("text-anchor");
-    label.querySelectorAll("tspan").forEach(t => t.setAttribute("x", LABEL_STYLE.xOffset));
-    label.style.removeProperty("opacity");
-  }, 150);
-}
+export function setLabelAbove(pin, animate = true) { positionLabel(pin, "above", animate); }
+function setLabelLeft(pin)                          { positionLabel(pin, "left"); }
 
 export function initSVG(svg) {
   svgElement = svg;

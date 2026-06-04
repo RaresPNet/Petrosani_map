@@ -115,34 +115,28 @@ export async function initEditPinPanel() {
     }
   });
 
-  // Cross-fade: start showing panel during the fly-in from selection mode
-  document.addEventListener(Events.EDITING_TRANSITION, e => {
-    const pin = e.detail;
+  function populatePanel(pin, isNew) {
     titleEl.value  = pin?.name        || "";
     descEl.value   = pin?.description || "";
-    headerTitle.textContent = "Editează";
-    panel.classList.remove("panel--new");
-    panel.classList.add("panel--existing");
-    saveBtn.textContent = "Actualizează";
+    headerTitle.textContent          = isNew ? "Pin nou" : "Editează";
+    saveBtn.textContent              = isNew ? "Salvează" : "Actualizează";
+    panel.classList.toggle("panel--new",      isNew);
+    panel.classList.toggle("panel--existing", !isNew);
     setDeleteConfirmState(false);
     panel.classList.add("visible");
-    loadPhotos(pin.id).catch(console.error);
+  }
+
+  // Cross-fade: start showing panel during the fly-in from selection mode
+  document.addEventListener(Events.EDITING_TRANSITION, e => {
+    populatePanel(e.detail, false);
+    loadPhotos(e.detail.id).catch(console.error);
   });
 
   onModeChange(mode => {
     if (mode === Mode.EDITING) {
-      // If panel already visible from editing:transition-start cross-fade, skip re-setup
-      if (panel.classList.contains("visible")) return;
-      const pin   = getActivePin();
-      const isNew = activePinNew();
-      titleEl.value  = pin?.name        || "";
-      descEl.value   = pin?.description || "";
-      headerTitle.textContent = isNew ? "Pin nou" : "Editează";
-      panel.classList.toggle("panel--new",      isNew);
-      panel.classList.toggle("panel--existing", !isNew);
-      saveBtn.textContent = isNew ? "Salvează" : "Actualizează";
-      setDeleteConfirmState(false);
-      panel.classList.add("visible");
+      // Panel already visible from the cross-fade during camera fly — just focus
+      if (panel.classList.contains("visible")) { titleEl.focus(); return; }
+      populatePanel(getActivePin(), activePinNew());
       titleEl.focus();
     } else {
       panel.classList.remove("visible");

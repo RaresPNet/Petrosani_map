@@ -1,3 +1,5 @@
+import { requireAuth } from "../../_shared/auth.js";
+
 // GET /api/images/:id  — reassemble chunks and serve raw image binary
 export async function onRequestGet({ params, env }) {
   const { results } = await env.DB.prepare(
@@ -23,6 +25,8 @@ export async function onRequestGet({ params, env }) {
 
 // PATCH /api/images/:id  — update description, author, year
 export async function onRequestPatch({ params, request, env }) {
+  const unauth = requireAuth(request, env);
+  if (unauth) return unauth;
   const body   = await request.json();
   const fields = {};
   if ("description" in body) fields.description = body.description || null;
@@ -40,7 +44,9 @@ export async function onRequestPatch({ params, request, env }) {
 }
 
 // DELETE /api/images/:id  — removes all chunks for this image
-export async function onRequestDelete({ params, env }) {
+export async function onRequestDelete({ params, request, env }) {
+  const unauth = requireAuth(request, env);
+  if (unauth) return unauth;
   await env.DB.prepare("DELETE FROM images WHERE id = ?").bind(params.id).run();
   return new Response(null, { status: 204 });
 }

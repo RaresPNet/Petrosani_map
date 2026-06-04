@@ -72,6 +72,20 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+// ─── Flight helpers ───────────────────────────────────────────────────────────
+
+function beginFlight(panZoom) {
+  panZoom.disablePan();
+  panZoom.disableZoom();
+  panZoom.disableMouseWheelZoom();
+  panZoom.setMaxZoom(Infinity);
+}
+
+function endFlight(panZoom) {
+  panZoom.setMaxZoom(MAX_ZOOM);
+  updatePinScale(panZoom);
+}
+
 // ─── Core animation primitive ─────────────────────────────────────────────────
 
 function animateCamera(panZoom, targetZoom, targetPan, duration, onComplete) {
@@ -115,16 +129,11 @@ export function flyTo(svgPoint, onComplete, targetZoom = PLACEMENT_ZOOM_LEVEL) {
   };
 
   setMode(Mode.FLYING);
-  panZoom.disablePan();
-  panZoom.disableZoom();
-  panZoom.disableMouseWheelZoom();
-  panZoom.setMaxZoom(Infinity);
-
+  beginFlight(panZoom);
   animateCamera(panZoom, targetZoom, targetPan, 600, () => {
+    endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
-    panZoom.setMaxZoom(MAX_ZOOM);
-    updatePinScale(panZoom);
     onComplete();
   });
 }
@@ -142,24 +151,18 @@ export function flyToSelection(svgPoint, onComplete) {
   const initialFitZoom = viewport.getScreenCTM().a / currentZoom;
   const targetScale    = currentZoom * initialFitZoom;
 
-  // Mirror PIN_FOCUS_X to the right side
   const targetPan = {
     x: (svg.clientWidth * (1 - PIN_FOCUS_X)) - svgPoint.x * targetScale,
     y:  svg.clientHeight / 2                 - svgPoint.y * targetScale,
   };
 
   setMode(Mode.FLYING);
-  panZoom.disablePan();
-  panZoom.disableZoom();
-  panZoom.disableMouseWheelZoom();
-  panZoom.setMaxZoom(Infinity);
-
+  beginFlight(panZoom);
   animateCamera(panZoom, currentZoom, targetPan, 600, () => {
+    endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
-    panZoom.enableMouseWheelZoom();  // re-enable — selection allows pan/zoom
-    panZoom.setMaxZoom(MAX_ZOOM);
-    updatePinScale(panZoom);
+    panZoom.enableMouseWheelZoom();
     onComplete();
   });
 }
@@ -181,18 +184,13 @@ export function flyOut(svgPoint) {
   };
 
   setMode(Mode.FLYING);
-  panZoom.disablePan();
-  panZoom.disableZoom();
-  panZoom.disableMouseWheelZoom();
-  panZoom.setMaxZoom(Infinity);
-
+  beginFlight(panZoom);
   animateCamera(panZoom, MAX_ZOOM, targetPan, 500, () => {
+    endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
     panZoom.enableMouseWheelZoom();
-    panZoom.setMaxZoom(MAX_ZOOM);
     computeLimits(panZoom);
-    updatePinScale(panZoom);
     setMode(Mode.BROWSE);
   });
 }
@@ -350,11 +348,10 @@ export function setupPanZoom(svg) {
       y:  svg.clientHeight / 2           - svgPoint.y * targetScale,
     };
     isRecentering = true;
-    panZoom.disablePan();
-    panZoom.setMaxZoom(Infinity);
+    beginFlight(panZoom);
     animateCamera(panZoom, currentZoom, targetPan, 500, () => {
       isRecentering = false;
-      panZoom.setMaxZoom(MAX_ZOOM);
+      endFlight(panZoom);
       panZoom.enablePan();
     });
   });
