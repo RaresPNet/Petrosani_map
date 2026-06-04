@@ -1,3 +1,4 @@
+import { initAuth } from "./auth.js";
 import { initSVG, loadPins, setOnPinClick, swapToSelectedType, restoreSelectedPinType } from "./map/pins.js";
 import { initSVGCoords } from "./map/svgCoords.js";
 import { setupPanZoom, flyToSelection, closeSelection } from "./map/camera.js";
@@ -7,6 +8,8 @@ import { initEditPinPanel, openPinForEdit } from "./panels/editPin.js";
 import { initViewPinPanel } from "./panels/viewPin.js";
 import { setMode, setSelectedPin, getSelectedPin, Mode } from "./appState.js";
 import { Events } from "./constants.js";
+
+await initAuth();
 
 fetch("map.svg")
   .then(r => r.text())

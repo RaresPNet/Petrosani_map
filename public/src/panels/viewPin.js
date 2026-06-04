@@ -2,6 +2,7 @@ import { onModeChange, getSelectedPin, Mode } from "../appState.js";
 import { getOriginalPinColor } from "../map/pins.js";
 import { Events } from "../constants.js";
 import { makeViewPhotos } from "../ui/photos.js";
+import { canEdit } from "../auth.js";
 
 let panel    = null;
 let headerEl = null;
@@ -29,6 +30,7 @@ export async function initViewPinPanel() {
   editBtn.addEventListener("click", () =>
     document.dispatchEvent(new CustomEvent(Events.SELECTION_EDIT))
   );
+  if (!canEdit()) editBtn.style.display = "none";
 
   // Cross-fade: fade out when edit transition starts (before mode changes)
   document.addEventListener(Events.EDITING_TRANSITION, () => {

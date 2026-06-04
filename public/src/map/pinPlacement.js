@@ -1,6 +1,7 @@
 import { Pin, renderPin } from "./pins.js";
 import { getSVGPoint } from "./svgCoords.js";
 import { setMode, getMode, canPlacePin, setActivePin, Mode } from "../appState.js";
+import { canEdit } from "../auth.js";
 import { flyTo } from "./camera.js";
 
 // ─── Notification ─────────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ export function initPinPlacement(svg) {
 
   // 'p' only toggles placement from browse — ignored in flying/editing
   document.addEventListener("keydown", e => {
-    if (e.key !== "p") return;
+    if (e.key !== "p" || !canEdit()) return;
     if (getMode() === Mode.BROWSE) {
       setMode(Mode.PLACING);
       showNotification("Pin placement mode ON");
