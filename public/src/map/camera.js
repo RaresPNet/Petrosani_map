@@ -1,5 +1,5 @@
 import {
-  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, PIN_FOCUS_X,
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, STREET_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
 import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, updatePinTransform, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
@@ -304,7 +304,9 @@ export function setupPanZoom(svg) {
       computeLimits(panZoom);
       updatePinScale(panZoom);
       onZoomCursor(panZoom);
-      svg.classList.toggle("show-labels", panZoom.getZoom() >= LABEL_ZOOM_THRESHOLD);
+      const zoom = panZoom.getZoom();
+      svg.classList.toggle("show-labels",  zoom >= LABEL_ZOOM_THRESHOLD);
+      svg.classList.toggle("show-streets", zoom >= STREET_ZOOM_THRESHOLD);
     },
   });
 

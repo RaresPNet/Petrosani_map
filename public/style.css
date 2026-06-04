@@ -40,6 +40,9 @@ body.pin-mode { cursor: crosshair; }
   display: block;
 }
 
+#layer7 { display: none; }
+.show-streets #layer7 { display: block; }
+
 #pin-notification {
   position: fixed;
   top: 20px;
