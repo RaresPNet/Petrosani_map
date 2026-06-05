@@ -10,6 +10,8 @@ export const Events = Object.freeze({
 export const MAX_ZOOM = 12;
 // Zoom level the camera settles at after a pin fly-in (may exceed MAX_ZOOM).
 export const PLACEMENT_ZOOM_LEVEL = 10;
+// Zoom level at which pins stop shrinking (keeps them legible during fly-ins).
+export const PIN_SCALE_CAP = 4.5;
 
 // ─── Pin focus ────────────────────────────────────────────────────────────────
 // Horizontal screen position the pin lands on after fly-in (fraction of width).

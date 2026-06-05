@@ -1,5 +1,5 @@
 import {
-  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, STREET_ZOOM_THRESHOLD, STREET_HI_ZOOM_THRESHOLD, PIN_FOCUS_X,
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, PIN_SCALE_CAP, LABEL_ZOOM_THRESHOLD, STREET_ZOOM_THRESHOLD, STREET_HI_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
 import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, updatePinTransform, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
@@ -60,7 +60,7 @@ function clampPan(_oldPan, newPan) {
 
 export function updatePinScale(panZoom) {
   const zoom  = panZoom.getZoom();
-  const scale = 1 / Math.min(zoom, MAX_ZOOM);
+  const scale = 1 / Math.min(zoom, PIN_SCALE_CAP);
   document.querySelectorAll(".pin-content").forEach(el =>
     el.setAttribute("transform", `scale(${scale})`)
   );
