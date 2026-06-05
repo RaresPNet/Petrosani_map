@@ -7,7 +7,7 @@ export const Events = Object.freeze({
 
 // ─── Zoom ─────────────────────────────────────────────────────────────────────
 // Maximum zoom during normal browsing (relative to initial fit).
-export const MAX_ZOOM = 4.5;
+export const MAX_ZOOM = 12;
 // Zoom level the camera settles at after a pin fly-in (may exceed MAX_ZOOM).
 export const PLACEMENT_ZOOM_LEVEL = 10;
 
@@ -18,7 +18,8 @@ export const PIN_FOCUS_X = 5 / 16;
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
 export const LABEL_ZOOM_THRESHOLD  = 1.5;
-export const STREET_ZOOM_THRESHOLD = 3.0; // midpoint between LABEL_ZOOM_THRESHOLD and MAX_ZOOM
+export const STREET_ZOOM_THRESHOLD    = 2.4;  // 20% of MAX_ZOOM
+export const STREET_HI_ZOOM_THRESHOLD = 9.6;  // 80% of MAX_ZOOM
 export const LABEL_STYLE = {
   lineHeight:         18,
   xOffset:           -14,

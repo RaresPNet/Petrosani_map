@@ -1,4 +1,5 @@
 import { initAuth } from "./auth.js";
+import { initTimeline } from "./ui/timeline.js";
 import { initSVG, loadPins, setOnPinClick, swapToSelectedType, restoreSelectedPinType } from "./map/pins.js";
 import { initSVGCoords } from "./map/svgCoords.js";
 import { setupPanZoom, flyToSelection, closeSelection } from "./map/camera.js";
@@ -10,6 +11,7 @@ import { setMode, setSelectedPin, getSelectedPin, Mode } from "./appState.js";
 import { Events } from "./constants.js";
 
 await initAuth();
+initTimeline();
 
 fetch("map.svg")
   .then(r => r.text())

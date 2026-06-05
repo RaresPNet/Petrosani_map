@@ -1,0 +1,161 @@
+/* ── Container ─────────────────────────────────────────────────────────────── */
+
+#timeline {
+  position: fixed;
+  bottom: 20px;
+  left: 25%;
+  width: 50%;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  z-index: 100;
+  user-select: none;
+}
+
+/* Faded background on pseudo-element so the mask doesn't affect content */
+#timeline::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(12, 22, 16, 0.20);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Track ─────────────────────────────────────────────────────────────────── */
+
+.timeline-track {
+  flex: 1;
+  position: relative;
+  height: 100%;
+  margin: 0 20px;
+  z-index: 1;
+}
+
+.timeline-line {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 50%;
+  height: 1.5px;
+  background: rgba(160, 160, 160, 0.50);
+  transform: translateY(-50%);
+}
+
+/* ── End arrows (triangle tips on the line) ─────────────────────────────────── */
+
+.timeline-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+}
+
+.timeline-arrow--left {
+  left: 0;
+  border-top:    5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right:  9px solid rgba(160, 160, 160, 0.55);
+  transition: border-right-color 150ms ease;
+}
+.timeline-arrow--left:hover    { border-right-color: rgba(220, 220, 220, 0.90); }
+.timeline-arrow--left:disabled { border-right-color: rgba(160, 160, 160, 0.15); cursor: default; }
+
+.timeline-arrow--right {
+  right: 0;
+  border-top:    5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left:   9px solid rgba(160, 160, 160, 0.55);
+  transition: border-left-color 150ms ease;
+}
+.timeline-arrow--right:hover    { border-left-color: rgba(220, 220, 220, 0.90); }
+.timeline-arrow--right:disabled { border-left-color: rgba(160, 160, 160, 0.15); cursor: default; }
+
+/* ── Decade marks ──────────────────────────────────────────────────────────── */
+
+.timeline-mark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.timeline-tick {
+  width: 2px;
+  height: 10px;
+  background: rgba(160, 160, 160, 0.65);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.timeline-label {
+  font-family: 'Roboto', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.80);
+  white-space: nowrap;
+}
+
+/* 1910 — the dated map */
+.timeline-mark--dated .timeline-tick {
+  height: 12px;
+  background: var(--color-primary);
+}
+.timeline-mark--dated .timeline-label {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+/* ── Dial ──────────────────────────────────────────────────────────────────── */
+
+.timeline-dial {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  background: var(--color-primary);
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: left 180ms ease;
+}
+
+.timeline-dial.dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+/* Year label above the dial */
+.timeline-dial::before {
+  content: attr(data-year);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Roboto', sans-serif;
+  font-size: 10px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}

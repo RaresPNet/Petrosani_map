@@ -40,8 +40,29 @@ body.pin-mode { cursor: crosshair; }
   display: block;
 }
 
-#layer7 { opacity: 0; transition: opacity 0.4s ease; pointer-events: none; }
+#layer7 {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
 .show-streets #layer7 { opacity: 1; pointer-events: auto; }
+
+/* Street name text — two zoom states overriding Inkscape inline styles */
+#layer7 text,
+#layer7 tspan {
+  fill:         #000                        !important;
+  stroke:       white                       !important;
+  stroke-width: 0.5px                       !important;
+  paint-order:  stroke fill                 !important;
+  font-family:  'Roboto', sans-serif        !important;
+  transition:   fill 0.4s ease, stroke 0.4s ease;
+}
+.show-streets-hi #layer7 text,
+.show-streets-hi #layer7 tspan {
+  fill:         white           !important;
+  stroke:       #000            !important;
+  stroke-width: 0.5px           !important;
+}
 
 #pin-notification {
   position: fixed;

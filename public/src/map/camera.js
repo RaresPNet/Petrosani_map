@@ -1,5 +1,5 @@
 import {
-  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, STREET_ZOOM_THRESHOLD, PIN_FOCUS_X,
+  MAX_ZOOM, PLACEMENT_ZOOM_LEVEL, LABEL_ZOOM_THRESHOLD, STREET_ZOOM_THRESHOLD, STREET_HI_ZOOM_THRESHOLD, PIN_FOCUS_X,
 } from "../constants.js";
 import { canInteract, isFlying, getMode, getActivePin, getSelectedPin, activePinNew, revertActivePin, onModeChange, Mode, setMode } from "../appState.js";
 import { deletePin, restoreSelectedPinType, updatePinVisual, updatePinLabel, updatePinTransform, isPointerOnActivePin, startPinDrag, setOnDragEnd, setEdgeScroller } from "./pins.js";
@@ -77,7 +77,6 @@ function easeInOutCubic(t) {
 function beginFlight(panZoom) {
   panZoom.disablePan();
   panZoom.disableZoom();
-  panZoom.disableMouseWheelZoom();
   panZoom.setMaxZoom(Infinity);
 }
 
@@ -130,7 +129,7 @@ export function flyTo(svgPoint, onComplete, targetZoom = PLACEMENT_ZOOM_LEVEL) {
 
   setMode(Mode.FLYING);
   beginFlight(panZoom);
-  animateCamera(panZoom, targetZoom, targetPan, 600, () => {
+  animateCamera(panZoom, targetZoom, targetPan, 380, () => {
     endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
@@ -158,11 +157,10 @@ export function flyToSelection(svgPoint, onComplete) {
 
   setMode(Mode.FLYING);
   beginFlight(panZoom);
-  animateCamera(panZoom, currentZoom, targetPan, 600, () => {
+  animateCamera(panZoom, currentZoom, targetPan, 380, () => {
     endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
-    panZoom.enableMouseWheelZoom();
     onComplete();
   });
 }
@@ -185,11 +183,10 @@ export function flyOut(svgPoint) {
 
   setMode(Mode.FLYING);
   beginFlight(panZoom);
-  animateCamera(panZoom, MAX_ZOOM, targetPan, 500, () => {
+  animateCamera(panZoom, MAX_ZOOM, targetPan, 320, () => {
     endFlight(panZoom);
     panZoom.enablePan();
     panZoom.enableZoom();
-    panZoom.enableMouseWheelZoom();
     computeLimits(panZoom);
     setMode(Mode.BROWSE);
   });
@@ -269,18 +266,12 @@ export function setupPanZoom(svg) {
     closeSelection();
   });
 
-  svg.addEventListener("wheel", e => {
-    if (!canInteract()) e.preventDefault();
-  }, { passive: false });
-
   svg.addEventListener("mousedown", () => { if (canInteract()) setCursor("panning"); });
   window.addEventListener("mouseup", () => { if (canInteract()) setCursor(null); });
 
   onModeChange(mode => {
     if (mode === Mode.PLACING) setCursor("pin-mode");
     else setCursor(null);
-    if (mode === Mode.BROWSE || mode === Mode.PLACING) panZoom.enableMouseWheelZoom();
-    if (mode === Mode.EDITING) panZoom.disableMouseWheelZoom();
     clickOutside.style.display = mode === Mode.EDITING ? "block" : "none";
   });
 
@@ -288,7 +279,7 @@ export function setupPanZoom(svg) {
     zoomEnabled: true,
     panEnabled: true,
     dblClickZoomEnabled: false,
-    mouseWheelZoomEnabled: true,
+    mouseWheelZoomEnabled: false, // handled manually for smooth animation
     zoomScaleSensitivity: 0.2,
     fit: true,
     center: true,
@@ -305,12 +296,55 @@ export function setupPanZoom(svg) {
       updatePinScale(panZoom);
       onZoomCursor(panZoom);
       const zoom = panZoom.getZoom();
-      svg.classList.toggle("show-labels",  zoom >= LABEL_ZOOM_THRESHOLD);
-      svg.classList.toggle("show-streets", zoom >= STREET_ZOOM_THRESHOLD);
+      svg.classList.toggle("show-labels",     zoom >= LABEL_ZOOM_THRESHOLD);
+      svg.classList.toggle("show-streets",    zoom >= STREET_ZOOM_THRESHOLD);
+      svg.classList.toggle("show-streets-hi", zoom >= STREET_HI_ZOOM_THRESHOLD);
     },
   });
 
   _panZoom = panZoom;
+
+  // ─── Smooth wheel zoom ──────────────────────────────────────────────────────
+  const wz = { target: null, rafId: null, cx: 0, cy: 0 };
+
+  svg.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (!canInteract()) return;
+
+    const dir = e.deltaY < 0 ? 1 : -1;
+    wz.cx     = e.clientX;
+    wz.cy     = e.clientY;
+    wz.target = Math.min(MAX_ZOOM, (wz.target ?? panZoom.getZoom()) * (1 + dir * 0.2));
+
+    if (wz.rafId) return;
+
+    function tick() {
+      if (!canInteract()) { wz.rafId = null; wz.target = null; return; }
+
+      const cur       = panZoom.getZoom();
+      const remaining = wz.target - cur;
+      if (Math.abs(remaining) < 0.002) {
+        panZoom.zoom(wz.target);
+        wz.rafId  = null;
+        wz.target = null;
+        computeLimits(panZoom);
+        return;
+      }
+
+      const next    = cur + remaining * 0.30; // lerp — decelerates naturally
+      const oldPan  = panZoom.getPan();
+      panZoom.zoom(next); // fires onZoom → updates classes, scale, limits
+      const ratio   = panZoom.getZoom() / cur;
+      panZoom.pan({
+        x: wz.cx - (wz.cx - oldPan.x) * ratio,
+        y: wz.cy - (wz.cy - oldPan.y) * ratio,
+      });
+
+      wz.rafId = requestAnimationFrame(tick);
+    }
+
+    wz.rafId = requestAnimationFrame(tick);
+  }, { passive: false });
 
   setEdgeScroller((clientX, clientY) => {
     const W  = window.innerWidth,  H  = window.innerHeight;
@@ -351,7 +385,7 @@ export function setupPanZoom(svg) {
     };
     isRecentering = true;
     beginFlight(panZoom);
-    animateCamera(panZoom, currentZoom, targetPan, 500, () => {
+    animateCamera(panZoom, currentZoom, targetPan, 320, () => {
       isRecentering = false;
       endFlight(panZoom);
       panZoom.enablePan();
