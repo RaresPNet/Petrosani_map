@@ -118,7 +118,7 @@ body.pin-mode { cursor: crosshair; }
 }
 
 .pin-active .pin-label {
-  font-size: 12px;
+  font-size: 15px;
   stroke-width: 1;
 }
 

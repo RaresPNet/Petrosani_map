@@ -11,7 +11,7 @@ import { setMode, setSelectedPin, getSelectedPin, Mode } from "./appState.js";
 import { Events } from "./constants.js";
 
 await initAuth();
-initTimeline();
+if (new URLSearchParams(location.search).get('timeline') === 'true') initTimeline();
 
 fetch("map.svg")
   .then(r => r.text())
